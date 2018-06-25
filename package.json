@@ -1,0 +1,31 @@
+{
+  "name": "boardgame-buddy",
+  "version": "1.0.0",
+  "description": "1. If you haven't already, [install Stack](https://haskell-lang.org/get-started) \t* On POSIX systems, this is usually `curl -sSL https://get.haskellstack.org/ | sh` 2. Install the `yesod` command line tool: `stack install yesod-bin --install-ghc` 3. Build libraries: `stack build`",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "build-css": "node-sass --include-path sass sass/custom.sass static/css/styles.css",
+    "run-app": "stack exec -- yesod devel",
+    "watch-css": "node-sass -w --include-path sass sass/custom.sass static/css/styles.css",
+    "start": "concurrently -k \"npm:watch-css\" \"npm:run-app\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XtraKrispi/boardgame-buddy.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/XtraKrispi/boardgame-buddy/issues"
+  },
+  "homepage": "https://github.com/XtraKrispi/boardgame-buddy#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "concurrently": "^3.6.0",
+    "node-sass": "^4.9.0",
+    "nodemon": "^1.17.5"
+  }
+}
