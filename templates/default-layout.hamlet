@@ -2,8 +2,7 @@
 <!-- Static navbar -->
 <nav .navbar .is-fixed-top .is-primary>
     <div .navbar-brand>
-        <div .navbar-item>
-            Boardgame Buddy
+        <a .navbar-item href="@{HomeR}">Boardgame Buddy
     <div .navbar-menu>
         <div .navbar-start>
             $forall MenuItem label route _ <- navbarLeftFilteredMenuItems

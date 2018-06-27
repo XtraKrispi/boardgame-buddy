@@ -16,3 +16,29 @@ Comment json -- Adding "json" causes ToJSON and FromJSON instances to be derived
     userId UserId Maybe
     deriving Eq
     deriving Show
+
+Poll json
+    title Text
+    startDate Day
+    expiryDate Day Maybe
+    deriving Eq
+    deriving Show
+
+PollAvailableDate json
+    date Day
+    pollId PollId
+    deriving Eq
+    deriving Show
+
+PollUser json
+    username Text
+    pollId PollId
+    isPollCreator Bool
+    deriving Eq
+    deriving Show
+
+PollResults json
+    pollUserId PollUserId
+    pollAvailableDateId PollAvailableDateId
+    deriving Eq
+    deriving Show

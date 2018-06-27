@@ -55,13 +55,27 @@ library:
     then:
       ghc-options:
       - -Wall
+      - -W
+      - -Werror
       - -fwarn-tabs
+      - -fwarn-unused-binds 
+      - -fwarn-unused-imports
+      - -fwarn-orphans               
+      - -fwarn-incomplete-patterns
+      - -fwarn-incomplete-uni-patterns
       - -O0
       cpp-options: -DDEVELOPMENT
     else:
       ghc-options:
       - -Wall
+      - -W
+      - -Werror
       - -fwarn-tabs
+      - -fwarn-unused-binds 
+      - -fwarn-unused-imports
+      - -fwarn-orphans
+      - -fwarn-incomplete-patterns
+      - -fwarn-incomplete-uni-patterns
       - -O2
 
 # Runnable executable for our application

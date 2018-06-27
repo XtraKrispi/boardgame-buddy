@@ -11,7 +11,7 @@
     "run-app": "stack exec -- yesod devel",
     "watch-css": "node-sass -w --include-path sass sass/custom.sass static/css/styles.css",
     "start": "concurrently -k \"npm:watch-css\" \"npm:run-app\"",
-    "watch-app": "ghcid --command \"stack ghci boardgame-buddy --ghci-options=-fobject-code\" --test \"DevelMain.update\""
+    "watch-app": "stack exec -- ghcid --command \"stack ghci boardgame-buddy --ghci-options=-fobject-code\" --test \"DevelMain.update\""
   },
   "repository": {
     "type": "git",

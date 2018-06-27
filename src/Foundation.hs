@@ -100,9 +100,6 @@ instance Yesod App where
 
         mcurrentRoute <- getCurrentRoute
 
-        -- Get the breadcrumbs, as defined in the YesodBreadcrumbs instance.
-        (title, parents) <- breadcrumbs
-
         -- Define the menu items of the header.
         let menuItems =
                 [ NavbarLeft $ MenuItem
@@ -111,7 +108,7 @@ instance Yesod App where
                     , menuItemAccessCallback = True
                     }
                 , NavbarLeft $ MenuItem
-                    { menuItemLabel = "Poll"
+                    { menuItemLabel = "Polls"
                     , menuItemRoute = PollsR
                     , menuItemAccessCallback = True
                     }

@@ -1,2 +1,11 @@
-<h1>
-  Polls
+$if null polls
+  <section .hero .is-primary>
+    <div .hero-body>
+      <div .container>
+        <h1 .title.>
+          There are no polls here...
+        <h2 .subtitle>
+          <button .button .is-large .is-inverted .is-primary>Get Started
+$else
+  $forall Entity _ poll@(Poll title _ _) <- polls
+    <div .tile :isActive today poll:.is-primary>#{title}
