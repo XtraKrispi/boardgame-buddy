@@ -20,3 +20,9 @@ getPollsR = do
   defaultLayout $ do
     setTitle "Boardgame Buddy | Polls"
     $(widgetFile "polls/polls")
+
+getCreatePollR :: Handler Html
+getCreatePollR = 
+  defaultLayout $ do
+    setTitle "Boardgame Buddy | New Poll"
+    $(widgetFile "polls/editPoll")

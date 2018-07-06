@@ -9,4 +9,5 @@
 / HomeR GET
 
 /polls PollsR GET
+/polls/new CreatePollR GET
 /gamenights GameNightsR GET
