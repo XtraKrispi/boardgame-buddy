@@ -7,6 +7,7 @@
 {-# LANGUAGE ExplicitForAll #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Foundation where
 
@@ -38,6 +39,7 @@ data MenuItem = MenuItem
     { menuItemLabel :: Text
     , menuItemRoute :: Route App
     , menuItemAccessCallback :: Bool
+    , menuItemRelatedRoutes :: [Route App]
     }
 
 data MenuTypes
@@ -64,6 +66,11 @@ type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
 -- | A convenient synonym for database access functions.
 type DB a = forall (m :: * -> *).
     (MonadIO m) => ReaderT SqlBackend m a
+
+isRouteMatch :: Maybe (Route App) -> Route App -> [Route App] -> Bool
+isRouteMatch (Just currentRoute) route relatedRoutes =    
+    currentRoute == route || elem currentRoute relatedRoutes
+isRouteMatch Nothing route _ = route == HomeR
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
@@ -106,16 +113,19 @@ instance Yesod App where
                     { menuItemLabel = "Home"
                     , menuItemRoute = HomeR
                     , menuItemAccessCallback = True
+                    , menuItemRelatedRoutes = []
                     }
                 , NavbarLeft $ MenuItem
                     { menuItemLabel = "Polls"
                     , menuItemRoute = PollsR
                     , menuItemAccessCallback = True
+                    , menuItemRelatedRoutes = [CreatePollR]
                     }
                 , NavbarLeft $ MenuItem
                     { menuItemLabel = "Game Nights"
                     , menuItemRoute = GameNightsR
                     , menuItemAccessCallback = True
+                    , menuItemRelatedRoutes = []
                     }
                 ]
 

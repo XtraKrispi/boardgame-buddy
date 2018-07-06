@@ -5,11 +5,11 @@
         <a .navbar-item href="@{HomeR}">Boardgame Buddy
     <div .navbar-menu>
         <div .navbar-start>
-            $forall MenuItem label route _ <- navbarLeftFilteredMenuItems
-                <a .navbar-item :Just route == mcurrentRoute:.is-active href="@{route}">#{label}                    
+            $forall MenuItem label route _ childRoutes <- navbarLeftFilteredMenuItems
+                <a .navbar-item :isRouteMatch mcurrentRoute route childRoutes:.is-active href="@{route}">#{label}                    
         <div .navbar-end>
-            $forall MenuItem label route _ <- navbarRightFilteredMenuItems
-                <a .navbar-item :Just route == mcurrentRoute:.is-active href="@{route}">#{label}                    
+            $forall MenuItem label route _ childRoutes <- navbarRightFilteredMenuItems
+                <a .navbar-item :isRouteMatch mcurrentRoute route childRoutes:.is-active href="@{route}">#{label}                    
     
 <!-- Page Contents -->
 

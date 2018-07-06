@@ -6,6 +6,7 @@
 module Handler.Home where
 
 import Import
+import Utils.GfyCatStyleUrls
 
 -- This is a handler function for the GET request method on the HomeR
 -- resource pattern. All of your resource patterns are defined in
@@ -16,6 +17,7 @@ import Import
 -- inclined, or create a single monolithic file.
 getHomeR :: Handler Html
 getHomeR = do
+    generated <- liftIO $ generate (UrlGenerationConfig "-" Lowercase 2)
     defaultLayout $ do
         setTitle "Boardgame Buddy!"
         $(widgetFile "homepage")

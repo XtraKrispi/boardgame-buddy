@@ -8,9 +8,9 @@ module Handler.Poll where
 import Import
 
 isActive :: Day -> Poll -> Bool
-isActive currentDate (Poll _ startDate Nothing) =
+isActive currentDate (Poll _ startDate Nothing _) =
   currentDate >= startDate
-isActive currentDate (Poll _ startDate (Just endDate)) =
+isActive currentDate (Poll _ startDate (Just endDate) _) =
   currentDate >= startDate && currentDate <= endDate
 
 getPollsR :: Handler Html
