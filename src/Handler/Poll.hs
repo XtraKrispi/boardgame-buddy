@@ -9,6 +9,7 @@ import Import
 import Data.Time.Calendar
 import qualified Data.Text as T
 import Text.Read
+import qualified Components.Calendar as Cal
 
 data PollForm = PollForm {
    pollFormTitle          :: Text
@@ -73,6 +74,7 @@ pollForm extra = do
 getCreatePollR :: Handler Html
 getCreatePollR = do
   ((res, widget), enctype) <- runFormPost pollForm
+  let calendarWidget = Cal.mkWidget []
   defaultLayout $ do
     setTitle "Boardgame Buddy | New Poll"
     $(widgetFile "polls/createPoll")
@@ -80,6 +82,7 @@ getCreatePollR = do
 postCreatePollR :: Handler Html
 postCreatePollR = do
   ((res, widget), enctype) <- runFormPost pollForm
+  let calendarWidget = Cal.mkWidget []
   defaultLayout $ do
     setTitle "Boardgame Buddy | New Poll"
     $(widgetFile "polls/createPoll")
