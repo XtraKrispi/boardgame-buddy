@@ -7,5 +7,5 @@ $if null polls
         <h2 .subtitle>
           <a href="@{CreatePollR}" .button .is-large .is-inverted .is-primary>Get Started
 $else
-  $forall Entity _ poll@(Poll title _ _ friendlyUrl) <- polls
+  $forall Entity _ poll@(Poll title _ _ _ friendlyUrl) <- polls
     <div .tile :isActive today poll:.is-primary>#{title}

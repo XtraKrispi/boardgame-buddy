@@ -18,13 +18,7 @@
       <div .alert.alert-info #message>#{msg}
 
 
-$if (Just HomeR == mcurrentRoute)
-    ^{widget}
-$else
-    <div .container>
-        <div .row>
-            <div .col-md-12>
-                ^{widget}
+^{widget}
 
 <footer .footer>
   <div .content .has-text-centered>

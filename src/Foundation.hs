@@ -141,6 +141,7 @@ instance Yesod App where
         -- value passed to hamletToRepHtml cannot be a widget, this allows
         -- you to use normal widget features in default-layout.
         pc <- widgetToPageContent $ do
+            addScriptRemote "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
             addStylesheet $ StaticR $ StaticRoute ["css","styles.css"] []
             $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")

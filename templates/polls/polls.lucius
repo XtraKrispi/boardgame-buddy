@@ -1,6 +1,4 @@
 .hero {
-  margin-top: 50px;
-
   button {
     margin-top:20px;
   }

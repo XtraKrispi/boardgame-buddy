@@ -1,0 +1,22 @@
+#{extra}
+^{fvInput applicableDaysView}
+<div .field>
+    <label .label>Title
+    <div .control>
+      ^{fvInput titleView}
+      <!-- <input .input type="text" placeholder="Enter title" name="pollTitle"> -->
+<div .field>
+  <label .label>Effective Date
+  <div .control>
+      ^{fvInput effectiveDateView}
+    <!-- <input .input type="date" name="pollEffectiveDate" required> -->
+<div .field>
+  <label .label>Expiry Date
+  <div .control>
+      ^{fvInput expiryDateView}
+    <!-- <input .input type="date" name="pollExpiryDate"> -->
+<div .field.is-grouped>
+    <div .control>
+      <button .button.is-link>Submit</button>         
+    <div .control>
+      <a onclick="history.back()" .button.is-text>Cancel</a>

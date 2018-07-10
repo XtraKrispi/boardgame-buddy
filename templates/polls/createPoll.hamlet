@@ -1,0 +1,11 @@
+<div .hero.is-primary>
+    <div .hero-body>
+      <div .container>
+          <h1 .title>
+            Create Poll
+<p>#{show res}</p>
+<div .columns>
+  <div .column.is-half.is-offset-one-quarter>
+    <form enctype=#{enctype} method="POST">
+      ^{widget}
+    

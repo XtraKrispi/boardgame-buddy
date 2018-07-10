@@ -21,6 +21,7 @@ Poll json
     title Text
     startDate Day
     expiryDate Day Maybe
+    closedDate Day Maybe
     friendlyUrl Text
     deriving Eq
     deriving Show
