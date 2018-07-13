@@ -18,6 +18,9 @@ data PollForm = PollForm {
   ,pollFormApplicableDays :: [Day]
 } deriving (Show)
 
+applicableDaysId :: Text
+applicableDaysId = "applicableDays"
+
 isActive :: Day -> Poll -> Bool
 isActive currentDate (Poll _ startDate Nothing Nothing _) =
   currentDate >= startDate
@@ -29,7 +32,7 @@ convertToDays :: Text -> [Day]
 convertToDays = fmap (read . T.unpack) . T.splitOn ","
 
 convertFromDays :: [Day] -> Text
-convertFromDays = T.concat . fmap (T.pack . showGregorian)
+convertFromDays = T.concat . intersperse "," . fmap (T.pack . showGregorian)
 
 applicableDaysField :: Field Handler [Day]
 applicableDaysField =
@@ -55,6 +58,14 @@ pollForm extra = do
         , fsAttrs   = [("class", "input")]
         }
 
+  let applicableDaysFieldSettings = FieldSettings
+        { fsLabel   = ""
+        , fsTooltip = Nothing
+        , fsId      = Just applicableDaysId
+        , fsName    = Nothing
+        , fsAttrs   = []
+        }
+
   (titleRes, titleView) <- mreq textField bulmaControlFieldSettings Nothing
   (effectiveDateRes, effectiveDateView) <- mreq dayField
                                                 bulmaControlFieldSettings
@@ -62,7 +73,10 @@ pollForm extra = do
   (expiryDateRes, expiryDateView) <- mopt dayField
                                           bulmaControlFieldSettings
                                           Nothing
-  (applicableDaysRes, applicableDaysView) <- mreq applicableDaysField "" Nothing
+  (applicableDaysRes, applicableDaysView) <- mreq
+    applicableDaysField
+    applicableDaysFieldSettings
+    (Just [fromGregorian 2018 1 1, fromGregorian 1984 11 25])
   let pollFormRes =
         PollForm
           <$> titleRes
@@ -74,7 +88,7 @@ pollForm extra = do
 getCreatePollR :: Handler Html
 getCreatePollR = do
   ((res, widget), enctype) <- runFormPost pollForm
-  let calendarWidget = Cal.mkWidget []
+  let calendarWidget = Cal.mkWidget applicableDaysId
   defaultLayout $ do
     setTitle "Boardgame Buddy | New Poll"
     $(widgetFile "polls/createPoll")
@@ -82,7 +96,7 @@ getCreatePollR = do
 postCreatePollR :: Handler Html
 postCreatePollR = do
   ((res, widget), enctype) <- runFormPost pollForm
-  let calendarWidget = Cal.mkWidget []
+  let calendarWidget = Cal.mkWidget applicableDaysId
   defaultLayout $ do
     setTitle "Boardgame Buddy | New Poll"
     $(widgetFile "polls/createPoll")

@@ -142,6 +142,9 @@ instance Yesod App where
         -- you to use normal widget features in default-layout.
         pc <- widgetToPageContent $ do
             addScriptRemote "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
+            addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
+            addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
+            addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
             addStylesheet $ StaticR $ StaticRoute ["css","styles.css"] []
             $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")

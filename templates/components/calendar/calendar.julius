@@ -1,2 +1,35 @@
 (function () {
+  function getDaysArrayByMonth(year, month) {
+    var daysInMonth = moment().year(year).month(month - 1).date(1).daysInMonth();
+    var arrDays = [];
+
+    while(daysInMonth) {
+      var current = moment().date(daysInMonth);
+      arrDays.push(current);
+      daysInMonth--;
+    }
+
+    return arrDays.reverse();
+  }
+
+  console.log(getDaysArrayByMonth(2018, 1));
+
+  var fieldId = "#{toJSON fieldId}";
+  var vals = $("#" + fieldId).val();
+  var firstDateToShow = moment();
+  if (vals) {    
+    alert(vals);
+  }
+
+  var getCalendarData = function (year, month) {
+
+  };
+
+  var buildCalendarRow = function (dates){
+
+  };
+
+  var buildCalendar = function (year, month){
+
+  };
 })();

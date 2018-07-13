@@ -1,1 +1,46 @@
-Calendar goes here! #{tshow selectedDays}
+<div .tile.is-ancestor.notification.is-info>
+  <div .tile.is-vertical>
+    <div .tile>
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          S
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          M
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          T
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          W
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          T
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          F
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          S
+    <div .tile>
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          1
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          2
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          3
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          4
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          5
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          6
+      <div .tile.is-parent>
+        <article .tile.is-child.notification.is-primary>
+          7        

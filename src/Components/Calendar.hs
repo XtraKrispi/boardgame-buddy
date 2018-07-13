@@ -7,6 +7,6 @@ module Components.Calendar where
 
 import Import
 
-mkWidget :: [Day] -> Widget
-mkWidget selectedDays = do
+mkWidget :: Text -> Widget
+mkWidget fieldId = do
   $(widgetFile "components/calendar/calendar")
