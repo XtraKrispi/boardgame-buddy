@@ -8,4 +8,17 @@ $if null polls
           <a href="@{CreatePollR}" .button .is-large .is-inverted .is-primary>Get Started
 $else
   $forall Entity _ poll@(Poll title _ _ _ friendlyUrl) <- polls
-    <div .tile :isActive today poll:.is-primary>#{title}
+    <div .card>
+      <header card-header>
+        <p .card-header-title :isActive today poll:.has-background-primary.has-text-white>
+          #{title}
+      <div .card-content>
+        <div .content>
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus nec iaculis mauris.
+          <a href="#">@bulmaio</a>. <a href="#">#css</a> <a href="#">#responsive</a>
+          <br>
+          <time datetime="2016-1-1">11:09 PM - 1 Jan 2016
+      <footer .card-footer>
+        <a href="@{ViewPollR friendlyUrl}" .card-footer-item>View
+        <a href="@{EditPollR friendlyUrl}" .card-footer-item>Edit
+        <a href="#" .card-footer-item>Delete

@@ -48,6 +48,7 @@ dependencies:
 - MonadRandom
 - random-shuffle
 - data-default
+- blaze-html
 
 # The library contains all of our application code. The executable
 # defined below is just a thin wrapper.

@@ -1,22 +1,28 @@
 #{extra}
 ^{fvInput applicableDaysView}
 <div .field>
-    <label .label>Title
-    <div .control>
-      ^{fvInput titleView}
-      <!-- <input .input type="text" placeholder="Enter title" name="pollTitle"> -->
+  <label .label>Title
+  <div .control>
+    ^{fvInput titleView}
+<div .field>
+  <label .label>Your name
+  <div .control>
+    ^{fvInput usernameView}
 <div .field>
   <label .label>Effective Date
   <div .control>
       ^{fvInput effectiveDateView}
-    <!-- <input .input type="date" name="pollEffectiveDate" required> -->
 <div .field>
   <label .label>Expiry Date
   <div .control>
       ^{fvInput expiryDateView}
-    <!-- <input .input type="date" name="pollExpiryDate"> -->
+    <!-- <input .input type="date" name="pollExpiryDate"> -->    
+<div .columns>
+  <div .column.is-half>
+    <label .label>Pick your dates:
+      ^{calendarWidget} 
 <div .field.is-grouped>
-    <div .control>
-      <button .button.is-link>Submit</button>         
-    <div .control>
-      <a onclick="history.back()" .button.is-text>Cancel</a>
+  <div .control>
+    <button .button.is-link>Submit</button>         
+  <div .control>
+    <a href="@{backRoute}" .button.is-text>Cancel</a>

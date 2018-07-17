@@ -1,0 +1,8 @@
+.calendar {
+  margin: 0 auto;
+  width: 60%;
+  height: 400px;
+  .date {
+    font-size: 20px;
+  }
+}

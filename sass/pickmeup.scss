@@ -1,0 +1,164 @@
+/**
+ * @package PickMeUp
+ * @author  Nazar Mokrynskyi <nazar@mokrynskyi.com>
+ * @license 0BSD
+ */
+@import "bulma/bulma.sass";
+$pmu-border-radius                    : .4em !default;
+$pmu-background                       : $primary !default;
+$pmu-color                            : #eee !default;
+$pmu-background-hover                 : transparent !default;
+$pmu-color-hover                      : #eee !default;
+$pmu-nav-color                        : $pmu-color !default;
+$pmu-nav-color-hover                  : $pmu-color-hover !default;
+$pmu-not-in-month                     : $grey !default;
+$pmu-not-in-month-hover               : #999 !default;
+$pmu-disabled                         : #333 !default;
+$pmu-selected                         : $pmu-color !default;
+$pmu-selected-background              : #136a9f !default;
+$pmu-not-in-month-selected-background : #17384d !default;
+$pmu-day-of-week                      : $pmu-not-in-month-hover !default;
+$pmu-today-background                 : $pmu-not-in-month-selected-background !default;
+$pmu-today-color                      : $pmu-color-hover !default;
+
+.pickmeup {
+	font-size       : 20px;
+	background      : $pmu-background;
+	border-radius   : $pmu-border-radius;
+	-moz-box-sizing : content-box;
+	box-sizing      : content-box;
+	display         : inline-block;
+	position        : absolute;
+	touch-action    : manipulation;
+	line-height     : 2em;
+
+	* {
+		-moz-box-sizing : border-box;
+		box-sizing      : border-box;
+	}
+
+	&.pmu-flat {
+		position : relative;
+	}
+
+	&.pmu-hidden {
+		display : none;
+	}
+
+	.pmu-instance {
+		display    : inline-block;
+		height     : 13.8em;
+		padding    : .5em;
+		text-align : center;
+		width      : 15em;
+
+		.pmu-button {
+			color           : $pmu-color;
+			cursor          : pointer;
+			outline         : none;
+			text-decoration : none;
+		}
+
+		.pmu-today {
+			background    : $pmu-today-background;
+			color         : $pmu-today-color;
+			border-radius : 50%;
+		}
+
+		// .pmu-button:hover {
+		// 	background : $pmu-background-hover;
+		// 	color      : $pmu-color-hover;
+		// }
+
+		.pmu-not-in-month {
+			color : $pmu-not-in-month;
+		}
+
+		.pmu-disabled,
+		.pmu-disabled:hover {
+			color  : $pmu-disabled;
+			cursor : default;
+		}
+
+		.pmu-selected {
+			background : $pmu-selected-background;
+			color      : $pmu-selected;
+			border-radius: 50%;
+		}
+
+		.pmu-not-in-month.pmu-selected {
+			background : $pmu-not-in-month-selected-background;
+		}
+
+		nav {
+			color       : $pmu-nav-color;
+			display     : -ms-flexbox;
+			display     : -webkit-flex;
+			display     : flex;
+			line-height : 2em;
+
+			*:first-child :hover {
+				color : $pmu-nav-color-hover;
+			}
+
+			.pmu-prev,
+			.pmu-next {
+				display : none;
+				height  : 2em;
+				width   : 1em;
+			}
+			.pmu-month {
+				width : 14em;
+			}
+		}
+
+		.pmu-years,
+		.pmu-months {
+			* {
+				display     : inline-block;
+				line-height : 3.6em;
+				width       : 3.5em;
+			}
+		}
+
+		.pmu-day-of-week {
+			color  : $pmu-day-of-week;
+			cursor : default;
+		}
+
+		.pmu-day-of-week,
+		.pmu-days {
+			* {
+				display     : inline-block;
+				width       : 2em;
+			}
+		}
+
+		.pmu-day-of-week * {
+			line-height : 1.8em;
+		}
+	}
+
+	.pmu-instance:first-child .pmu-prev,
+	.pmu-instance:last-child .pmu-next {
+		display : block;
+	}
+
+	.pmu-instance:first-child,
+	.pmu-instance:last-child {
+		.pmu-month {
+			width : 13em;
+		}
+	}
+
+	.pmu-instance:first-child:last-child .pmu-month {
+		width : 12em;
+	}
+
+	&:not(.pmu-view-days) .pmu-days,
+	&:not(.pmu-view-days) .pmu-day-of-week,
+	&:not(.pmu-view-months) .pmu-months,
+	&:not(.pmu-view-years) .pmu-years {
+		display : none;
+	}
+}

@@ -145,6 +145,7 @@ instance Yesod App where
             addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
             addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
             addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
+            addScript $ StaticR js_pickmeup_js
             addStylesheet $ StaticR $ StaticRoute ["css","styles.css"] []
             $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")

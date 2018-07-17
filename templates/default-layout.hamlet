@@ -12,14 +12,4 @@
                 <a .navbar-item :isRouteMatch mcurrentRoute route childRoutes:.is-active href="@{route}">#{label}                    
     
 <!-- Page Contents -->
-
-<div .container>
-    $maybe msg <- mmsg
-      <div .alert.alert-info #message>#{msg}
-
-
 ^{widget}
-
-<footer .footer>
-  <div .content .has-text-centered>
-    <p .has-text-weight-light>#{appCopyright $ appSettings master}

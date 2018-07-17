@@ -1,35 +1,25 @@
 (function () {
-  function getDaysArrayByMonth(year, month) {
-    var daysInMonth = moment().year(year).month(month - 1).date(1).daysInMonth();
-    var arrDays = [];
+  var fieldId = #{toJSON fieldId};
+  var field = $("#" + fieldId);
+  var vals = R.filter(function(r) { return !!r; }, R.split(",", field.val()));
 
-    while(daysInMonth) {
-      var current = moment().date(daysInMonth);
-      arrDays.push(current);
-      daysInMonth--;
-    }
+  var dateElement = document.querySelector(".date");
+  pickmeup(dateElement,{
+	  format	: 'Y-m-d',
+    mode: "multiple",
+    min: new Date(),
+    calendars: 3,
+    date: vals,
+    default_date: false
+  }).show();
 
-    return arrDays.reverse();
-  }
+  dateElement.addEventListener('pickmeup-hide', function (e) {
+    e.preventDefault(); // Hiding can be canceled if needed
+  });
 
-  console.log(getDaysArrayByMonth(2018, 1));
-
-  var fieldId = "#{toJSON fieldId}";
-  var vals = $("#" + fieldId).val();
-  var firstDateToShow = moment();
-  if (vals) {    
-    alert(vals);
-  }
-
-  var getCalendarData = function (year, month) {
-
-  };
-
-  var buildCalendarRow = function (dates){
-
-  };
-
-  var buildCalendar = function (year, month){
-
-  };
+  dateElement.addEventListener('pickmeup-change', function (e) {
+    // console.log(e.detail.formatted_date); // New date according to current format
+    // console.log(e.detail.date);           // New date as Date object
+    field.val(R.join(",", e.detail.formatted_date));
+  });
 })();

@@ -8,6 +8,8 @@
 
 / HomeR GET
 
+/new/poll CreatePollR GET POST
 /polls PollsR GET
-/polls/new CreatePollR GET POST
+/polls/#Text/edit EditPollR GET
+/poll/#Text ViewPollR GET
 /gamenights GameNightsR GET
