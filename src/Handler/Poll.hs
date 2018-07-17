@@ -16,14 +16,7 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as H
 import Utils.GfyCatStyleUrls
 import Control.Monad.Random hiding (forM_)
-
-data PollForm = PollForm {
-   pollFormTitle          :: Text
-  ,pollFormUsername       :: Text
-  ,pollFormEffectiveDate  :: Day
-  ,pollFormExpiryDate     :: Maybe Day
-  ,pollFormApplicableDays :: [Day]
-} deriving (Show)
+import Db.Polls
 
 data MessageType = MessageSuccess | MessageInfo | MessageWarning | MessageError
 
@@ -40,16 +33,17 @@ instance B.ToMarkup Message where
                   MessageWarning -> "is-warning"
                   MessageError -> "is-danger"
     H.div B.! H.class_ ("notification " <> class_ <> " notification-message") $ do
-      H.text msg 
+      H.text msg
 
 convertToPoll :: MonadRandom m => PollForm -> m (Poll, [Day], T.Text)
-convertToPoll PollForm{..} = do
-  pollFriendlyUrl <- generate (UrlGenerationConfig "-" Lowercase 2) 
+convertToPoll PollForm {..} = do
+  pollFriendlyUrl <- generate (UrlGenerationConfig "-" Lowercase 2)
   return (Poll {..}, pollFormApplicableDays, pollFormUsername)
-  where pollTitle = pollFormTitle
-        pollStartDate = pollFormEffectiveDate
-        pollExpiryDate = pollFormExpiryDate
-        pollClosedDate = Nothing
+ where
+  pollTitle      = pollFormTitle
+  pollStartDate  = pollFormEffectiveDate
+  pollExpiryDate = pollFormExpiryDate
+  pollClosedDate = Nothing
 
 convertMessage :: Message -> Html
 convertMessage = B.toMarkup
@@ -84,9 +78,9 @@ getPollsR = do
     $(widgetFile "polls/polls")
 
 pollForm :: Html -> MForm Handler (FormResult PollForm, Widget)
-pollForm extra = do  
-  let backRoute = CreatePollR
-  let calendarWidget = Cal.mkWidget applicableDaysId  
+pollForm extra = do
+  let backRoute      = CreatePollR
+  let calendarWidget = Cal.mkWidget applicableDaysId
   currentDay <- liftIO $ utctDay <$> getCurrentTime
   let bulmaControlFieldSettings = FieldSettings
         { fsLabel   = ""
@@ -105,17 +99,18 @@ pollForm extra = do
         }
 
   (titleRes, titleView) <- mreq textField bulmaControlFieldSettings Nothing
-  (usernameRes, usernameView) <- mreq textField bulmaControlFieldSettings Nothing
+  (usernameRes, usernameView) <- mreq textField
+                                      bulmaControlFieldSettings
+                                      Nothing
   (effectiveDateRes, effectiveDateView) <- mreq dayField
                                                 bulmaControlFieldSettings
                                                 (Just currentDay)
   (expiryDateRes, expiryDateView) <- mopt dayField
                                           bulmaControlFieldSettings
                                           Nothing
-  (applicableDaysRes, applicableDaysView) <- mreq
-    applicableDaysField
-    applicableDaysFieldSettings
-    Nothing
+  (applicableDaysRes, applicableDaysView) <- mreq applicableDaysField
+                                                  applicableDaysFieldSettings
+                                                  Nothing
   let pollFormRes =
         PollForm
           <$> titleRes
@@ -127,7 +122,7 @@ pollForm extra = do
 
 getCreatePollR :: Handler Html
 getCreatePollR = do
-  mmsg <- getMessage
+  mmsg                     <- getMessage
   ((res, widget), enctype) <- runFormPost pollForm
   defaultLayout $ do
     setTitle "Boardgame Buddy | New Poll"
@@ -136,18 +131,15 @@ getCreatePollR = do
 postCreatePollR :: Handler Html
 postCreatePollR = do
   ((res, widget), enctype) <- runFormPost pollForm
-  case res of 
+  case res of
     FormSuccess formData -> do
-      (poll, days, username) <- liftIO . convertToPoll $ formData
-      (pollId, _, _) <- runDB $ do
-        pollKey <- insert poll
-        pollDayKeys <- forM days $ \day -> do
-          insert $ PollAvailableDate day pollKey
-        pollUserKey <- insert $ PollUser username pollKey True
-        return (pollKey, pollDayKeys, pollUserKey)
-      setMessage $ convertMessage (Message "The poll was created successfully!" MessageSuccess)
+      (poll  , days, username) <- liftIO . convertToPoll $ formData
+      (pollId, _   , _       ) <- runDB $ insertPoll poll days username
+      setMessage $ convertMessage
+        (Message "The poll was created successfully!" MessageSuccess)
       redirect $ EditPollR $ pollFriendlyUrl poll
-    FormFailure msgs -> setMessage $ convertMessage (Message "This is a test" MessageError)
+    FormFailure msgs ->
+      setMessage $ convertMessage (Message "This is a test" MessageError)
     _ -> setMessage $ convertMessage (Message "This is a test" MessageInfo)
   mmsg <- getMessage
   defaultLayout $ do
@@ -156,20 +148,18 @@ postCreatePollR = do
 
 getEditPollR :: T.Text -> Handler Html
 getEditPollR friendlyUrl = do
-  mPoll <- runDB $ getBy $ UniquePollUrl friendlyUrl
-  case mPoll of
-    Nothing -> notFound
-    Just (Entity pollId Poll{..}) ->
-      defaultLayout $ do
-        setTitle . H.text $ "Boardgame Buddy | Edit " <> pollTitle
+  mPollForm <- runDB $ getPollForm friendlyUrl    
+  case mPollForm of
+    Nothing            -> notFound
+    Just PollForm {..} -> defaultLayout $ do
+      setTitle . H.text $ "Boardgame Buddy | Edit " <> pollFormTitle
 
 getViewPollR :: T.Text -> Handler Html
 getViewPollR friendlyUrl = do
   mPoll <- runDB $ do
     poll <- getBy $ UniquePollUrl friendlyUrl
     return poll
-  case mPoll of 
-    Nothing -> notFound
-    Just (Entity pollId Poll{..}) -> 
-      defaultLayout $ do
-        setTitle $ H.text $ "Boardgame Buddy | " <> pollTitle
+  case mPoll of
+    Nothing                        -> notFound
+    Just (Entity pollId Poll {..}) -> defaultLayout $ do
+      setTitle $ H.text $ "Boardgame Buddy | " <> pollTitle

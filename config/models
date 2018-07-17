@@ -21,6 +21,7 @@ PollUser json
     username Text
     pollId PollId
     isPollCreator Bool
+    UniquePollUser username pollId
     deriving Eq
     deriving Show
 
