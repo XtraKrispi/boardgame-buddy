@@ -9,11 +9,12 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Foundation where
 
 import Import.NoFoundation
-import Database.Persist.Sql (ConnectionPool, runSqlPool)
+import Database.Persist.Sql (ConnectionPool, runSqlPool, toSqlKey)
 import Text.Hamlet          (hamletFile)
 import Text.Jasmine         (minifym)
 import Control.Monad.Logger (LogSource)
@@ -24,7 +25,10 @@ import qualified Yesod.Core.Unsafe as Unsafe
 import qualified Data.CaseInsensitive as CI
 import qualified Data.Text.Encoding as TE
 import Yesod.Auth.Email
-import qualified Yesod.Auth.Message as AM
+import qualified Yesod.Auth.Message as Msg
+import           Control.Applicative      ((<$>), (<*>))
+import Db.Users
+import Model
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -70,6 +74,8 @@ type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
 type DB a = forall (m :: * -> *).
     (MonadIO m) => ReaderT SqlBackend m a
 
+data UserLoginForm = UserLoginForm { _loginEmail :: Text }    
+
 isRouteMatch :: Maybe (Route App) -> Route App -> [Route App] -> Bool
 isRouteMatch (Just currentRoute) route relatedRoutes =    
     currentRoute == route || elem currentRoute relatedRoutes
@@ -92,6 +98,10 @@ layout widget = do
       addStylesheet $ StaticR $ StaticRoute ["css","styles.css"] []
       widget
     withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
+
+runDatabaseAction action = do
+    master <- getYesod
+    runSqlPool action $ appConnPool master    
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
@@ -197,9 +207,7 @@ instance Yesod App where
 instance YesodPersist App where
     type YesodPersistBackend App = SqlBackend
     runDB :: SqlPersistT Handler a -> Handler a
-    runDB action = do
-        master <- getYesod
-        runSqlPool action $ appConnPool master
+    runDB = runDatabaseAction
 
 instance YesodPersistRunner App where
     getDBRunner :: Handler (DBRunner App, Handler ())
@@ -223,7 +231,7 @@ instance YesodAuthPersist App where
 
 instance YesodAuth App where
     type AuthId App = UserId
-    authenticate _ = return (UserError AM.Email)
+    authenticate _ = return (UserError Msg.Email)
     loginDest _ = HomeR
     logoutDest _ = HomeR
 
@@ -233,8 +241,18 @@ instance YesodAuthEmail App where
     type AuthEmailId App = Text
     addUnverified _ _ = return ""
     sendVerifyEmail _ _ _ = return ()
-    getVerifyKey _ = return Nothing
-    setVerifyKey _ _ = return ()
+
+    getVerifyKey authEmailId = do
+        mUser <- runDatabaseAction $ getUser authEmailId
+        case mUser of
+            Just (Entity _ User{..}) -> return userVerificationKey
+            Nothing -> return Nothing
+
+    setVerifyKey authEmailId verKey = 
+        runDatabaseAction $ 
+            updateWhere [UserEmail ==. authEmailId] 
+                        [UserVerificationKey =. Just verKey]
+                        
     verifyAccount _ = return Nothing
     getPassword _ = return Nothing
     setPassword _ _ = return ()
@@ -242,7 +260,29 @@ instance YesodAuthEmail App where
     getEmail _ = return Nothing
     afterPasswordRoute _ = HomeR
 
-    emailLoginHandler _ = $(widgetFile "login/login")
+    emailLoginHandler toParent = do
+        (widget, enctype) <- generateFormPost loginForm
+        $(widgetFile "login/login")
+        where
+            loginForm extra = do
+                emailMsg <- renderMessage' Msg.Email
+                (emailRes, emailView) <- mreq emailField (emailSettings emailMsg) Nothing
+
+                let userRes = UserLoginForm Control.Applicative.<$> emailRes
+                let widget = $(widgetFile "login/loginForm")
+                return (userRes, widget)
+            emailSettings emailMsg = do
+                FieldSettings {
+                    fsLabel = SomeMessage Msg.Email,
+                    fsTooltip = Nothing,
+                    fsId = Just "email",
+                    fsName = Just "email",
+                    fsAttrs = [("autofocus", ""), ("placeholder", emailMsg)]
+                }
+            renderMessage' msg = do
+                langs <- languages
+                master <- getYesod
+                return $ renderAuthMessage master langs msg
 
 unsafeHandler :: App -> Handler a -> IO a
 unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger

@@ -4,6 +4,7 @@
 User json
     email Text
     nickname Text Maybe    
+    verificationKey Text Maybe
     UniqueEmail email
     deriving Eq
     deriving Show
