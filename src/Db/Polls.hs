@@ -4,6 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RankNTypes #-}
 module Db.Polls where
 
 import Import
@@ -13,9 +14,7 @@ insertPoll
   :: Poll
   -> [Day]
   -> T.Text
-  -> SqlPersistT
-       Handler
-       (Key Poll, [Key PollAvailableDate], Key PollUser)
+  -> DB (Key Poll, [Key PollAvailableDate], Key PollUser)
 insertPoll poll days username = do
   pollKey     <- insert poll
   pollDayKeys <- forM days $ \day -> do
@@ -23,20 +22,22 @@ insertPoll poll days username = do
   pollUserKey <- insert $ PollUser username pollKey True
   return (pollKey, pollDayKeys, pollUserKey)
 
-getPollForm :: T.Text -> SqlPersistT Handler (Maybe PollForm)
+getPollForm :: T.Text -> DB (Maybe PollForm)
 getPollForm friendlyUrl =
-  (getBy $ UniquePollUrl friendlyUrl) >>= (maybe (return Nothing) $ \(Entity pollId Poll {..}) -> do                                                                                
-    applicableDays <-
-      fmap (pollAvailableDateDate . entityVal) <$> selectList
-        [PollAvailableDatePollId ==. pollId]
-        [Asc PollAvailableDateDate]
-    [Entity userId user] <- selectList
-      [PollUserPollId ==. pollId, PollUserIsPollCreator ==. True]
-      [LimitTo 1]
-    return $ Just $ PollForm
-      { pollFormTitle          = pollTitle
-      , pollFormUsername       = pollUserUsername user
-      , pollFormEffectiveDate  = pollStartDate
-      , pollFormExpiryDate     = pollExpiryDate
-      , pollFormApplicableDays = applicableDays
-      })
+  (getBy $ UniquePollUrl friendlyUrl)
+    >>= (maybe (return Nothing) $ \(Entity pollId Poll {..}) -> do
+          applicableDays <-
+            fmap (pollAvailableDateDate . entityVal) <$> selectList
+              [PollAvailableDatePollId ==. pollId]
+              [Asc PollAvailableDateDate]
+          [Entity userId user] <- selectList
+            [PollUserPollId ==. pollId, PollUserIsPollCreator ==. True]
+            [LimitTo 1]
+          return $ Just $ PollForm
+            { pollFormTitle          = pollTitle
+            , pollFormUsername       = pollUserUsername user
+            , pollFormEffectiveDate  = pollStartDate
+            , pollFormExpiryDate     = pollExpiryDate
+            , pollFormApplicableDays = applicableDays
+            }
+        )

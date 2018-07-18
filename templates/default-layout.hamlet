@@ -10,6 +10,5 @@
         <div .navbar-end>
             $forall MenuItem label route _ childRoutes <- navbarRightFilteredMenuItems
                 <a .navbar-item :isRouteMatch mcurrentRoute route childRoutes:.is-active href="@{route}">#{label}                    
-    
 <!-- Page Contents -->
 ^{widget}

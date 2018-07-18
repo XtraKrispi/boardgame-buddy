@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -22,6 +23,8 @@ import Yesod.Core.Types     (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
 import qualified Data.CaseInsensitive as CI
 import qualified Data.Text.Encoding as TE
+import Yesod.Auth.Email
+import qualified Yesod.Auth.Message as AM
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -71,6 +74,24 @@ isRouteMatch :: Maybe (Route App) -> Route App -> [Route App] -> Bool
 isRouteMatch (Just currentRoute) route relatedRoutes =    
     currentRoute == route || elem currentRoute relatedRoutes
 isRouteMatch Nothing route _ = route == HomeR
+
+layout :: Widget -> Handler Html
+layout widget = do
+    master <- getYesod
+    -- We break up the default layout into two components:
+    -- default-layout is the contents of the body tag, and
+    -- default-layout-wrapper is the entire page. Since the final
+    -- value passed to hamletToRepHtml cannot be a widget, this allows
+    -- you to use normal widget features in default-layout.
+    pc <- widgetToPageContent $ do
+      addScriptRemote "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
+      addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
+      addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
+      addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
+      addScript $ StaticR js_pickmeup_js
+      addStylesheet $ StaticR $ StaticRoute ["css","styles.css"] []
+      widget
+    withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
@@ -134,21 +155,7 @@ instance Yesod App where
 
         let navbarLeftFilteredMenuItems = [x | x <- navbarLeftMenuItems, menuItemAccessCallback x]
         let navbarRightFilteredMenuItems = [x | x <- navbarRightMenuItems, menuItemAccessCallback x]
-
-        -- We break up the default layout into two components:
-        -- default-layout is the contents of the body tag, and
-        -- default-layout-wrapper is the entire page. Since the final
-        -- value passed to hamletToRepHtml cannot be a widget, this allows
-        -- you to use normal widget features in default-layout.
-        pc <- widgetToPageContent $ do
-            addScriptRemote "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
-            addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
-            addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
-            addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
-            addScript $ StaticR js_pickmeup_js
-            addStylesheet $ StaticR $ StaticRoute ["css","styles.css"] []
-            $(widgetFile "default-layout")
-        withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
+        layout $ [whamlet|^{widget}|]        
 
     -- This function creates static content files in the static folder
     -- and names them based on a hash of their content. This allows
@@ -186,17 +193,6 @@ instance Yesod App where
     makeLogger :: App -> IO Logger
     makeLogger = return . appLogger
 
--- Define breadcrumbs.
-instance YesodBreadcrumbs App where
-    -- Takes the route that the user is currently on, and returns a tuple
-    -- of the 'Text' that you want the label to display, and a previous
-    -- breadcrumb route.
-    breadcrumb
-        :: Route App  -- ^ The route the user is visiting currently.
-        -> Handler (Text, Maybe (Route App))
-    breadcrumb HomeR = return ("Home", Nothing)
-    breadcrumb  _ = return ("home", Nothing)
-
 -- How to run database actions.
 instance YesodPersist App where
     type YesodPersistBackend App = SqlBackend
@@ -221,6 +217,32 @@ instance RenderMessage App FormMessage where
 instance HasHttpManager App where
     getHttpManager :: App -> Manager
     getHttpManager = appHttpManager
+
+instance YesodAuthPersist App where
+    type AuthEntity App = User
+
+instance YesodAuth App where
+    type AuthId App = UserId
+    authenticate _ = return (UserError AM.Email)
+    loginDest _ = HomeR
+    logoutDest _ = HomeR
+
+    authPlugins _ = [authEmail]
+
+instance YesodAuthEmail App where
+    type AuthEmailId App = Text
+    addUnverified _ _ = return ""
+    sendVerifyEmail _ _ _ = return ()
+    getVerifyKey _ = return Nothing
+    setVerifyKey _ _ = return ()
+    verifyAccount _ = return Nothing
+    getPassword _ = return Nothing
+    setPassword _ _ = return ()
+    getEmailCreds _ = return Nothing
+    getEmail _ = return Nothing
+    afterPasswordRoute _ = HomeR
+
+    emailLoginHandler _ = $(widgetFile "login/login")
 
 unsafeHandler :: App -> Handler a -> IO a
 unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger

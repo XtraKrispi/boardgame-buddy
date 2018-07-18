@@ -17,6 +17,7 @@ import qualified Text.Blaze.Html5.Attributes as H
 import Utils.GfyCatStyleUrls
 import Control.Monad.Random hiding (forM_)
 import Db.Polls
+import Handler.Common
 
 data MessageType = MessageSuccess | MessageInfo | MessageWarning | MessageError
 
@@ -73,11 +74,11 @@ getPollsR :: Handler Html
 getPollsR = do
   today <- liftIO $ utctDay <$> getCurrentTime
   polls <- runDB $ selectList [] [Asc PollStartDate]
-  defaultLayout $ do
+  loggedInLayout $ do
     setTitle "Boardgame Buddy | Polls"
     $(widgetFile "polls/polls")
 
-pollForm :: Html -> MForm Handler (FormResult PollForm, Widget)
+pollForm :: Form PollForm
 pollForm extra = do
   let backRoute      = CreatePollR
   let calendarWidget = Cal.mkWidget applicableDaysId
@@ -124,7 +125,7 @@ getCreatePollR :: Handler Html
 getCreatePollR = do
   mmsg                     <- getMessage
   ((res, widget), enctype) <- runFormPost pollForm
-  defaultLayout $ do
+  loggedInLayout $ do
     setTitle "Boardgame Buddy | New Poll"
     $(widgetFile "polls/createPoll")
 
@@ -142,7 +143,7 @@ postCreatePollR = do
       setMessage $ convertMessage (Message "This is a test" MessageError)
     _ -> setMessage $ convertMessage (Message "This is a test" MessageInfo)
   mmsg <- getMessage
-  defaultLayout $ do
+  loggedInLayout $ do
     setTitle "Boardgame Buddy | New Poll"
     $(widgetFile "polls/createPoll")
 
@@ -151,7 +152,7 @@ getEditPollR friendlyUrl = do
   mPollForm <- runDB $ getPollForm friendlyUrl    
   case mPollForm of
     Nothing            -> notFound
-    Just PollForm {..} -> defaultLayout $ do
+    Just PollForm {..} -> loggedInLayout $ do
       setTitle . H.text $ "Boardgame Buddy | Edit " <> pollFormTitle
 
 getViewPollR :: T.Text -> Handler Html
@@ -161,5 +162,5 @@ getViewPollR friendlyUrl = do
     return poll
   case mPoll of
     Nothing                        -> notFound
-    Just (Entity pollId Poll {..}) -> defaultLayout $ do
+    Just (Entity pollId Poll {..}) -> loggedInLayout $ do
       setTitle $ H.text $ "Boardgame Buddy | " <> pollTitle
