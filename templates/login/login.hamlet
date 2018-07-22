@@ -1,5 +1,5 @@
 <h1>Login page
-<form method="post" action="@{toParent loginR}", enctype=#{enctype}>
+<form method="post" action="@{toParent registerR}", enctype=#{enctype}>
     <div id="emailLoginForm">
         ^{widget}
         <div>

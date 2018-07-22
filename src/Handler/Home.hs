@@ -19,6 +19,6 @@ import Handler.Common
 getHomeR :: Handler Html
 getHomeR = do
     generated <- liftIO $ generate (UrlGenerationConfig "-" Lowercase 2)
-    loggedInLayout $ do
+    defaultLayout $ do
         setTitle "Boardgame Buddy!"
         $(widgetFile "homepage")

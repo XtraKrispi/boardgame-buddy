@@ -23,6 +23,12 @@ import Yesod.Default.Config2       (applyEnvValue, configSettingsYml)
 import Yesod.Default.Util          (WidgetFileSettings, widgetFileNoReload,
                                     widgetFileReload)
 
+data MailSettings = MailSettings {
+     mailHost      :: String
+    ,mailUsername  :: String
+    ,mailPassword  :: String
+}                                    
+
 -- | Runtime settings to configure this application. These settings can be
 -- loaded from various sources: defaults, environment variables, config files,
 -- theoretically even a database.
@@ -61,7 +67,16 @@ data AppSettings = AppSettings
 
     , appAuthDummyLogin         :: Bool
     -- ^ Indicate if auth dummy login should be enabled.
+    , appMail                   :: MailSettings
+    -- ^ Application Mail settings
     }
+
+instance FromJSON MailSettings where
+    parseJSON = withObject "MailSettings" $ \o -> do
+        mailHost <- o .: "host"
+        mailUsername <- o .: "username"
+        mailPassword <- o .: "password"
+        return MailSettings{..}
 
 instance FromJSON AppSettings where
     parseJSON = withObject "AppSettings" $ \o -> do
@@ -90,7 +105,7 @@ instance FromJSON AppSettings where
         appAnalytics              <- o .:? "analytics"
 
         appAuthDummyLogin         <- o .:? "auth-dummy-login"      .!= dev
-
+        appMail                   <- o .:  "mail"
         return AppSettings {..}
 
 -- | Settings for 'widgetFile', such as which template languages to support and

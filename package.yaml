@@ -49,7 +49,12 @@ dependencies:
 - random-shuffle
 - data-default
 - blaze-html
+- blaze-markup
 - uuid
+- HaskellNet
+- HaskellNet-SSL
+- pwstore-fast
+- http-types
 
 # The library contains all of our application code. The executable
 # defined below is just a thin wrapper.

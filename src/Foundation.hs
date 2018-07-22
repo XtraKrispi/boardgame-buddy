@@ -29,6 +29,7 @@ import qualified Yesod.Auth.Message as Msg
 import           Control.Applicative      ((<$>), (<*>))
 import Db.Users
 import Model
+import Utils.Email
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -74,34 +75,16 @@ type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
 type DB a = forall (m :: * -> *).
     (MonadIO m) => ReaderT SqlBackend m a
 
-data UserLoginForm = UserLoginForm { _loginEmail :: Text }    
+data UserLoginForm = UserLoginForm { _loginEmail :: Text }
 
 isRouteMatch :: Maybe (Route App) -> Route App -> [Route App] -> Bool
-isRouteMatch (Just currentRoute) route relatedRoutes =    
-    currentRoute == route || elem currentRoute relatedRoutes
+isRouteMatch (Just currentRoute) route relatedRoutes =
+  currentRoute == route || elem currentRoute relatedRoutes
 isRouteMatch Nothing route _ = route == HomeR
 
-layout :: Widget -> Handler Html
-layout widget = do
-    master <- getYesod
-    -- We break up the default layout into two components:
-    -- default-layout is the contents of the body tag, and
-    -- default-layout-wrapper is the entire page. Since the final
-    -- value passed to hamletToRepHtml cannot be a widget, this allows
-    -- you to use normal widget features in default-layout.
-    pc <- widgetToPageContent $ do
-      addScriptRemote "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
-      addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
-      addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
-      addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
-      addScript $ StaticR js_pickmeup_js
-      addStylesheet $ StaticR $ StaticRoute ["css","styles.css"] []
-      widget
-    withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
-
 runDatabaseAction action = do
-    master <- getYesod
-    runSqlPool action $ appConnPool master    
+  master <- getYesod
+  runSqlPool action $ appConnPool master
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
@@ -165,8 +148,25 @@ instance Yesod App where
 
         let navbarLeftFilteredMenuItems = [x | x <- navbarLeftMenuItems, menuItemAccessCallback x]
         let navbarRightFilteredMenuItems = [x | x <- navbarRightMenuItems, menuItemAccessCallback x]
-        layout $ [whamlet|^{widget}|]        
-
+        -- We break up the default layout into two components:
+        -- default-layout is the contents of the body tag, and
+        -- default-layout-wrapper is the entire page. Since the final
+        -- value passed to hamletToRepHtml cannot be a widget, this allows
+        -- you to use normal widget features in default-layout.
+        pc <- widgetToPageContent $ do
+          addScriptRemote
+            "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
+          addScriptRemote
+            "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
+          addScriptRemote
+            "https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
+          addScriptRemote
+            "https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
+          addScript $ StaticR js_pickmeup_js
+          addStylesheet $ StaticR $ StaticRoute ["css", "styles.css"] []
+          $(widgetFile "default-layout")
+        withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
+      
     -- This function creates static content files in the static folder
     -- and names them based on a hash of their content. This allows
     -- expiration dates to be set far in the future without worry of
@@ -235,54 +235,7 @@ instance YesodAuth App where
     loginDest _ = HomeR
     logoutDest _ = HomeR
 
-    authPlugins _ = [authEmail]
-
-instance YesodAuthEmail App where
-    type AuthEmailId App = Text
-    addUnverified _ _ = return ""
-    sendVerifyEmail _ _ _ = return ()
-
-    getVerifyKey authEmailId = do
-        mUser <- runDatabaseAction $ getUser authEmailId
-        case mUser of
-            Just (Entity _ User{..}) -> return userVerificationKey
-            Nothing -> return Nothing
-
-    setVerifyKey authEmailId verKey = 
-        runDatabaseAction $ 
-            updateWhere [UserEmail ==. authEmailId] 
-                        [UserVerificationKey =. Just verKey]
-                        
-    verifyAccount _ = return Nothing
-    getPassword _ = return Nothing
-    setPassword _ _ = return ()
-    getEmailCreds _ = return Nothing
-    getEmail _ = return Nothing
-    afterPasswordRoute _ = HomeR
-
-    emailLoginHandler toParent = do
-        (widget, enctype) <- generateFormPost loginForm
-        $(widgetFile "login/login")
-        where
-            loginForm extra = do
-                emailMsg <- renderMessage' Msg.Email
-                (emailRes, emailView) <- mreq emailField (emailSettings emailMsg) Nothing
-
-                let userRes = UserLoginForm Control.Applicative.<$> emailRes
-                let widget = $(widgetFile "login/loginForm")
-                return (userRes, widget)
-            emailSettings emailMsg = do
-                FieldSettings {
-                    fsLabel = SomeMessage Msg.Email,
-                    fsTooltip = Nothing,
-                    fsId = Just "email",
-                    fsName = Just "email",
-                    fsAttrs = [("autofocus", ""), ("placeholder", emailMsg)]
-                }
-            renderMessage' msg = do
-                langs <- languages
-                master <- getYesod
-                return $ renderAuthMessage master langs msg
+    authPlugins _ = []
 
 unsafeHandler :: App -> Handler a -> IO a
 unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger

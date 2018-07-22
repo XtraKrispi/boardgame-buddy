@@ -74,7 +74,7 @@ getPollsR :: Handler Html
 getPollsR = do
   today <- liftIO $ utctDay <$> getCurrentTime
   polls <- runDB $ selectList [] [Asc PollStartDate]
-  loggedInLayout $ do
+  defaultLayout $ do
     setTitle "Boardgame Buddy | Polls"
     $(widgetFile "polls/polls")
 
@@ -125,7 +125,7 @@ getCreatePollR :: Handler Html
 getCreatePollR = do
   mmsg                     <- getMessage
   ((res, widget), enctype) <- runFormPost pollForm
-  loggedInLayout $ do
+  defaultLayout $ do
     setTitle "Boardgame Buddy | New Poll"
     $(widgetFile "polls/createPoll")
 
@@ -143,7 +143,7 @@ postCreatePollR = do
       setMessage $ convertMessage (Message "This is a test" MessageError)
     _ -> setMessage $ convertMessage (Message "This is a test" MessageInfo)
   mmsg <- getMessage
-  loggedInLayout $ do
+  defaultLayout $ do
     setTitle "Boardgame Buddy | New Poll"
     $(widgetFile "polls/createPoll")
 
@@ -152,7 +152,7 @@ getEditPollR friendlyUrl = do
   mPollForm <- runDB $ getPollForm friendlyUrl    
   case mPollForm of
     Nothing            -> notFound
-    Just PollForm {..} -> loggedInLayout $ do
+    Just PollForm {..} -> defaultLayout $ do
       setTitle . H.text $ "Boardgame Buddy | Edit " <> pollFormTitle
 
 getViewPollR :: T.Text -> Handler Html
@@ -162,5 +162,5 @@ getViewPollR friendlyUrl = do
     return poll
   case mPoll of
     Nothing                        -> notFound
-    Just (Entity pollId Poll {..}) -> loggedInLayout $ do
+    Just (Entity pollId Poll {..}) -> defaultLayout $ do
       setTitle $ H.text $ "Boardgame Buddy | " <> pollTitle

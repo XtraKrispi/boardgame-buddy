@@ -10,6 +10,6 @@ import Handler.Common
 
 getGameNightsR :: Handler Html
 getGameNightsR =
-  loggedInLayout $ do
+  defaultLayout $ do
     setTitle "Boardgame Buddy | Game Nights"
     $(widgetFile "gameNight/gameNights")
