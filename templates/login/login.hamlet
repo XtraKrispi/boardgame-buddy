@@ -1,4 +1,5 @@
-<h1>Login page
-<form method="post">
-    <div id="emailLoginForm">
+<div .columns>
+    <div .column.is-half.is-offset-one-quarter>
+        <form enctype=#{enctype} method="POST" action="@{AuthR loginPostR}">
+            ^{widget}
         

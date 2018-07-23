@@ -31,6 +31,10 @@ import qualified Db.Users as Users
 import Model
 import qualified Utils.Email as Email
 
+import qualified Text.Blaze.Html as B
+import qualified Text.Blaze.Html5 as H
+import qualified Text.Blaze.Html5.Attributes as H
+
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
 -- starts running, such as database connections. Every handler will have
@@ -103,6 +107,9 @@ instance Yesod App where
     makeSessionBackend _ = Just <$> defaultClientSessionBackend
         120    -- timeout in minutes
         "config/client_session_key.aes"
+
+    authRoute _ = Just $ AuthR LoginR
+    isAuthorized _ _ = return Authorized
 
     -- Yesod Middleware allows you to run code before and after each handler function.
     -- The defaultYesodMiddleware adds the response header "Vary: Accept, Accept-Language" and performs authorization checks.
@@ -231,11 +238,36 @@ instance YesodAuthPersist App where
 
 instance YesodAuth App where
     type AuthId App = UserId
-    authenticate _ = return (UserError Msg.Email)
+    authenticate creds = return (UserError Msg.Email)
     loginDest _ = HomeR
     logoutDest _ = HomeR
 
     authPlugins _ = [authNoPassword]
+
+    authLayout :: (MonadHandler m, HandlerSite m ~ App) => WidgetFor App () -> m Html
+    authLayout widget = liftHandler $ do
+        master <- getYesod
+        mmsg <- getMessage
+
+        mcurrentRoute <- getCurrentRoute    
+        -- We break up the default layout into two components:
+        -- default-layout is the contents of the body tag, and
+        -- default-layout-wrapper is the entire page. Since the final
+        -- value passed to hamletToRepHtml cannot be a widget, this allows
+        -- you to use normal widget features in default-layout.
+        pc <- widgetToPageContent $ do
+          addScriptRemote
+            "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
+          addScriptRemote
+            "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
+          addScriptRemote
+            "https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
+          addScriptRemote
+            "https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
+          addScript $ StaticR js_pickmeup_js
+          addStylesheet $ StaticR $ StaticRoute ["css", "styles.css"] []
+          $(widgetFile "auth-layout")
+        withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 
 instance NoPasswordAuth App where
         -- | Route to a page that dispays a login form. This is not provided by
@@ -248,15 +280,18 @@ instance NoPasswordAuth App where
     --
     -- __Note__: the user will not be authenticated when they reach the page.
     emailSentRoute :: App -> Route App
-    emailSentRoute _ = UserLoginR
+    emailSentRoute _ = EmailSentR
 
     -- | Send a login email.
     sendLoginEmail :: Email -- ^ The email to send to
                    -> Text  -- ^ The URL that will log the user in
                    -> AuthHandler App ()
-    sendLoginEmail email url =
-        (appMail <$> appSettings <$> getYesod) >>=
-            liftIO . (Email.sendLoginEmail email url)
+    sendLoginEmail email url = do
+        mailSettings <- appMail <$> appSettings <$> getYesod
+        results <- liftIO . (Email.sendLoginEmail email url) $ mailSettings
+        case results of
+            Left err -> redirect UserLoginR
+            Right () -> return ()
 
     -- | Get a user by their email address. Used to determine if the user exists or not.
     getUserByEmail :: Email -> AuthHandler App (Maybe (AuthId App))

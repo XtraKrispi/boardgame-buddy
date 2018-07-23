@@ -19,11 +19,11 @@ loginEmailBody url =
       H.p $ do
         H.text url
 
-sendLoginEmail :: T.Text -> T.Text -> MailSettings -> IO ()
+sendLoginEmail :: T.Text -> T.Text -> MailSettings -> IO (Either T.Text ())
 sendLoginEmail emailAddress url MailSettings{..} = do
   doSMTPSSL mailHost $ \conn -> do
     authSucceed <- authenticate PLAIN mailUsername mailPassword conn
     if authSucceed
-      then sendMimeMail (T.unpack emailAddress) "noreply@boardgamebuddy.com" "Board Game Buddy Login" (LT.pack "Html Content") (loginEmailBody url) [] conn
-      else fail "Bad Auth"    
+      then Right <$> sendMimeMail (T.unpack emailAddress) "XtraKrispi@gmail.com" "Board Game Buddy Login" (LT.pack "Html Content") (loginEmailBody url) [] conn
+      else return . Left $ "Bad Auth"    
 

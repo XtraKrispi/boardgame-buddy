@@ -4,7 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RecordWildCards #-}
-module Handler.Login where
+module Handler.Email where
 
 import Import
 import Data.Time.Calendar
@@ -20,13 +20,7 @@ import Db.Polls
 import Handler.Common
 import Auth.NoPassword (EmailForm(..), loginPostR)
 
-loginForm :: Form EmailForm
-loginForm extra = do
-  (emailRes, emailView) <- mreq emailField "" Nothing
-  return (EmailForm <$> emailRes, $(widgetFile "login/loginForm"))
-
-getUserLoginR :: Handler Html
-getUserLoginR = do
-  ((res, widget), enctype) <- runFormPost loginForm    
+getEmailSentR :: Handler Html
+getEmailSentR = do
   authLayout $
-    $(widgetFile "login/login")
+    $(widgetFile "email/email")

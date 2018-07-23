@@ -17,3 +17,4 @@
 /gamenights GameNightsR GET
 
 /session/login UserLoginR GET
+/session/email EmailSentR GET

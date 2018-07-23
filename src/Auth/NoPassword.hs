@@ -103,12 +103,7 @@ type Hash = Text
 -- | Data type required for the Yesod form.
 newtype EmailForm = EmailForm
     { efEmail :: Email
-    }
-
-
--- Convenience alias for forms
---type Form' x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
-type Form m a = (Html -> MForm (HandlerFor m) (FormResult a, WidgetT m IO ()))
+    } deriving (Show)
 
 -- | Function to create the Yesod Auth plugin. Must be used by a type with an
 -- instance for 'NoPasswordAuth', and must be given a form to use.
@@ -121,22 +116,19 @@ authNoPassword = AuthPlugin pluginName dispatch login
         dispatch "GET"  ["login"] = getLoginR
         dispatch _ _ = notFound
 
-
 postEmailR :: NoPasswordAuth m
-           => --Form m EmailForm
-           -- -> 
-            AuthHandler m TypedContent
+           => AuthHandler m TypedContent
 postEmailR = do
-    let form = EmailForm <$> areq textField "email" Nothing
+    let form = EmailForm <$> areq emailField "email" Nothing
     ((result, _), _) <- liftHandler $ runFormPost $ renderTable form
     master <- getYesod
     case result of
         FormMissing -> do
             setMessage "Something went wrong, please try again"
-            redirect (emailSentRoute master)
+            redirect (loginRoute master)
         FormFailure as -> do
             mapM_ (setMessage . B.text) as
-            redirect (emailSentRoute master)
+            redirect (loginRoute master)
         FormSuccess e -> do
             let email = efEmail e
             strength <- tokenStrength
@@ -148,7 +140,7 @@ postEmailR = do
                     updateLoginHashForUser user (Just hash) tid
                 Nothing ->
                     newUserWithLoginHash email hash tid
-            url <- genUrl token tid
+            url <- genUrl token tid          
             sendLoginEmail email url
             redirect (emailSentRoute master)
 
