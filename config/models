@@ -4,8 +4,10 @@
 User json
     email Text
     nickname Text Maybe    
-    verificationKey Text Maybe
+    token Text
+    hash Text Maybe
     UniqueEmail email
+    UniqueToken token
     deriving Eq
     deriving Show
 

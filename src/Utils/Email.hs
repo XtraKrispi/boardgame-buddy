@@ -13,19 +13,17 @@ import Network.HaskellNet.SMTP
 import Network.HaskellNet.Auth
 import Network.HaskellNet.SMTP.SSL
 
-loginEmailBody :: T.Text -> T.Text -> LT.Text
-loginEmailBody verKey verUrl = 
+loginEmailBody :: T.Text -> LT.Text
+loginEmailBody url = 
     R.renderHtml $ H.div $ do
       H.p $ do
-        H.text verKey
-      H.p $ do
-        H.text verUrl
+        H.text url
 
-sendLoginEmail :: MailSettings -> T.Text -> T.Text -> T.Text -> IO ()
-sendLoginEmail MailSettings{..} emailAddress verKey verUrl = do
+sendLoginEmail :: T.Text -> T.Text -> MailSettings -> IO ()
+sendLoginEmail emailAddress url MailSettings{..} = do
   doSMTPSSL mailHost $ \conn -> do
     authSucceed <- authenticate PLAIN mailUsername mailPassword conn
     if authSucceed
-      then sendMimeMail (T.unpack emailAddress) "noreply@boardgamebuddy.com" "Board Game Buddy Login" (LT.pack "Html Content") (loginEmailBody verKey verUrl) [] conn
+      then sendMimeMail (T.unpack emailAddress) "noreply@boardgamebuddy.com" "Board Game Buddy Login" (LT.pack "Html Content") (loginEmailBody url) [] conn
       else fail "Bad Auth"    
 

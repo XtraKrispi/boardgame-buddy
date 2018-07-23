@@ -15,3 +15,5 @@
 /polls/#Text/edit EditPollR GET
 /poll/#Text ViewPollR GET
 /gamenights GameNightsR GET
+
+/session/login UserLoginR GET

@@ -1,7 +1,4 @@
 <h1>Login page
-<form method="post" action="@{toParent registerR}", enctype=#{enctype}>
+<form method="post">
     <div id="emailLoginForm">
-        ^{widget}
-        <div>
-            <button type=submit .btn .btn-success>
-                _{Msg.LoginViaEmail}
+        

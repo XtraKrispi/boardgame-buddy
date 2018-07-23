@@ -24,12 +24,12 @@ import Yesod.Core.Types     (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
 import qualified Data.CaseInsensitive as CI
 import qualified Data.Text.Encoding as TE
-import Yesod.Auth.Email
+import Auth.NoPassword
 import qualified Yesod.Auth.Message as Msg
 import           Control.Applicative      ((<$>), (<*>))
-import Db.Users
+import qualified Db.Users as Users
 import Model
-import Utils.Email
+import qualified Utils.Email as Email
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -235,7 +235,78 @@ instance YesodAuth App where
     loginDest _ = HomeR
     logoutDest _ = HomeR
 
-    authPlugins _ = []
+    authPlugins _ = [authNoPassword]
+
+instance NoPasswordAuth App where
+        -- | Route to a page that dispays a login form. This is not provided by
+    -- the plugin.
+    loginRoute :: App -> Route App
+    loginRoute _ = UserLoginR
+
+    -- | Route to which the user should be sent after entering an email
+    -- address. This is not provided by the plugin.
+    --
+    -- __Note__: the user will not be authenticated when they reach the page.
+    emailSentRoute :: App -> Route App
+    emailSentRoute _ = UserLoginR
+
+    -- | Send a login email.
+    sendLoginEmail :: Email -- ^ The email to send to
+                   -> Text  -- ^ The URL that will log the user in
+                   -> AuthHandler App ()
+    sendLoginEmail email url =
+        (appMail <$> appSettings <$> getYesod) >>=
+            liftIO . (Email.sendLoginEmail email url)
+
+    -- | Get a user by their email address. Used to determine if the user exists or not.
+    getUserByEmail :: Email -> AuthHandler App (Maybe (AuthId App))
+    getUserByEmail email = 
+        (fmap . fmap $ entityKey) <$> runDatabaseAction $ Users.getUserByEmail email
+
+    -- | Get a Hash by a TokenId.
+    --
+    -- Invoked when the user returns to the site from an email. We don't know
+    -- who the user is at this point as they may open the link from the email
+    -- on another device or in another browser, so session data can't be used.
+    -- Equally we do not want to pass the user's ID or email address in a URL
+    -- if we don't have to, so instead we look up users by the 'TokenId' that
+    -- we issued them earlier in the process.
+    getEmailAndHashByTokenId :: TokenId -> AuthHandler App (Maybe (Email, Hash))
+    getEmailAndHashByTokenId token = do
+        mUser <- runDatabaseAction $ Users.getUserByTokenId token
+        return $ do
+            (Entity _ User{..}) <- mUser
+            hash <- userHash
+            return (userEmail, hash)
+    
+    -- | Update a user's login hash
+    --
+    -- This is also used to blank out the hash once the user has logged in, or
+    -- can be used to prevent the user from logging in, so must accept a value
+    -- of `Nothing`.
+    --
+    -- /It is recommended that the/ 'TokenId' /storage be enforced as unique/.
+    -- For this reason, the token is not passed as a maybe, as some storage
+    -- backends treat `NULL` values as the same.
+    updateLoginHashForUser :: (AuthId App) -> Maybe Hash -> TokenId -> AuthHandler App ()
+    updateLoginHashForUser authId hash token =
+        runDatabaseAction $
+            Users.getUser authId >>=
+                maybe (return ()) 
+                      (\user -> Users.updateUser authId (user { userHash = hash
+                                                              , userToken = token
+                                                              }))
+            
+
+    -- | Create a new user with an email address and hash.
+    newUserWithLoginHash :: Email -> Hash -> TokenId -> AuthHandler App ()
+    newUserWithLoginHash email hash token = do
+        _ <- runDatabaseAction $ Users.createUser (User { userEmail = email
+                                                        , userNickname = Nothing
+                                                        , userHash = Just hash
+                                                        , userToken = token
+                                                        })
+        return ()
 
 unsafeHandler :: App -> Handler a -> IO a
 unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
