@@ -82,6 +82,8 @@ type DB a = forall (m :: * -> *).
 data UserLoginForm = UserLoginForm { _loginEmail :: Text }
 
 isRouteMatch :: Maybe (Route App) -> Route App -> [Route App] -> Bool
+isRouteMatch (Just (EditPollR _)) PollsR _ = True
+isRouteMatch (Just (ViewPollR _)) PollsR _ = True
 isRouteMatch (Just currentRoute) route relatedRoutes =
   currentRoute == route || elem currentRoute relatedRoutes
 isRouteMatch Nothing route _ = route == HomeR
@@ -89,6 +91,9 @@ isRouteMatch Nothing route _ = route == HomeR
 runDatabaseAction action = do
   master <- getYesod
   runSqlPool action $ appConnPool master
+
+isLoggedIn = maybeAuthId >>= maybe (return AuthenticationRequired) 
+                                   (const $ return Authorized)
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
@@ -108,7 +113,13 @@ instance Yesod App where
         120    -- timeout in minutes
         "config/client_session_key.aes"
 
-    authRoute _ = Just $ AuthR LoginR
+    authRoute _ = Just $ UserLoginR
+    isAuthorized HomeR _ = isLoggedIn
+    isAuthorized CreatePollR _ = isLoggedIn
+    isAuthorized PollsR _ = isLoggedIn
+    isAuthorized (EditPollR _) _ = isLoggedIn
+    isAuthorized (ViewPollR _) _ = isLoggedIn
+    isAuthorized GameNightsR _ = isLoggedIn
     isAuthorized _ _ = return Authorized
 
     -- Yesod Middleware allows you to run code before and after each handler function.
@@ -145,6 +156,12 @@ instance Yesod App where
                 , NavbarLeft $ MenuItem
                     { menuItemLabel = "Game Nights"
                     , menuItemRoute = GameNightsR
+                    , menuItemAccessCallback = True
+                    , menuItemRelatedRoutes = []
+                    }
+                , NavbarRight $ MenuItem
+                    { menuItemLabel = "Log Out"
+                    , menuItemRoute = AuthR LogoutR
                     , menuItemAccessCallback = True
                     , menuItemRelatedRoutes = []
                     }
@@ -238,7 +255,11 @@ instance YesodAuthPersist App where
 
 instance YesodAuth App where
     type AuthId App = UserId
-    authenticate creds = return (UserError Msg.Email)
+    authenticate Creds{..} = do
+        mUser <- liftHandler $ runDatabaseAction $ Users.getUserByEmail credsIdent
+        case mUser of
+            Nothing -> return $ UserError Msg.Email
+            Just (Entity userId _) -> return $ Authenticated userId
     loginDest _ = HomeR
     logoutDest _ = HomeR
 

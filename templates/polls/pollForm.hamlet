@@ -5,10 +5,6 @@
   <div .control>
     ^{fvInput titleView}
 <div .field>
-  <label .label>Your name
-  <div .control>
-    ^{fvInput usernameView}
-<div .field>
   <label .label>Effective Date
   <div .control>
       ^{fvInput effectiveDateView}

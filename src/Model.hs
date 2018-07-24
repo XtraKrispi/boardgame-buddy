@@ -21,7 +21,6 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"]
 
 data PollForm = PollForm {
     pollFormTitle          :: Text
-   ,pollFormUsername       :: Text
    ,pollFormEffectiveDate  :: Day
    ,pollFormExpiryDate     :: Maybe Day
    ,pollFormApplicableDays :: [Day]

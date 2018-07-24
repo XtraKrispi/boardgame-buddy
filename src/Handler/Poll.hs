@@ -36,10 +36,10 @@ instance B.ToMarkup Message where
     H.div B.! H.class_ ("notification " <> class_ <> " notification-message") $ do
       H.text msg
 
-convertToPoll :: MonadRandom m => PollForm -> m (Poll, [Day], T.Text)
+convertToPoll :: MonadRandom m => PollForm -> m (Poll, [Day])
 convertToPoll PollForm {..} = do
   pollFriendlyUrl <- generate (UrlGenerationConfig "-" Lowercase 2)
-  return (Poll {..}, pollFormApplicableDays, pollFormUsername)
+  return (Poll {..}, pollFormApplicableDays)
  where
   pollTitle      = pollFormTitle
   pollStartDate  = pollFormEffectiveDate
@@ -100,9 +100,6 @@ pollForm extra = do
         }
 
   (titleRes, titleView) <- mreq textField bulmaControlFieldSettings Nothing
-  (usernameRes, usernameView) <- mreq textField
-                                      bulmaControlFieldSettings
-                                      Nothing
   (effectiveDateRes, effectiveDateView) <- mreq dayField
                                                 bulmaControlFieldSettings
                                                 (Just currentDay)
@@ -115,7 +112,6 @@ pollForm extra = do
   let pollFormRes =
         PollForm
           <$> titleRes
-          <*> usernameRes
           <*> effectiveDateRes
           <*> expiryDateRes
           <*> applicableDaysRes
@@ -134,8 +130,9 @@ postCreatePollR = do
   ((res, widget), enctype) <- runFormPost pollForm
   case res of
     FormSuccess formData -> do
-      (poll  , days, username) <- liftIO . convertToPoll $ formData
-      (pollId, _   , _       ) <- runDB $ insertPoll poll days username
+      (poll  , days) <- liftIO . convertToPoll $ formData
+      Just userId <- maybeAuthId
+      (pollId, _   , _) <- runDB $ insertPoll poll days userId
       setMessage $ convertMessage
         (Message "The poll was created successfully!" MessageSuccess)
       redirect $ EditPollR $ pollFriendlyUrl poll

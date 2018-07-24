@@ -28,10 +28,10 @@ PollAvailableDate json
     deriving Show
 
 PollUser json
-    username Text
+    userId UserId
     pollId PollId
     isPollCreator Bool
-    UniquePollUser username pollId
+    UniquePollUser userId pollId
     deriving Eq
     deriving Show
 

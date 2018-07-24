@@ -155,7 +155,7 @@ getLoginR = do
             muser <- getEmailAndHashByTokenId tid
             case muser of
                 Nothing -> permissionDenied "No login token sent"
-                Just (email, hash) ->
+                Just (email, hash) ->                    
                     if (verifyToken hash loginToken)
                         then setCredsRedirect (Creds pluginName email [])
                         else permissionDenied "Incorrect login token"

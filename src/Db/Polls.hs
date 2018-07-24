@@ -13,13 +13,13 @@ import qualified Data.Text as T
 insertPoll
   :: Poll
   -> [Day]
-  -> T.Text
+  -> UserId
   -> DB (Key Poll, [Key PollAvailableDate], Key PollUser)
-insertPoll poll days username = do
+insertPoll poll days userId = do
   pollKey     <- insert poll
   pollDayKeys <- forM days $ \day -> do
     insert $ PollAvailableDate day pollKey
-  pollUserKey <- insert $ PollUser username pollKey True
+  pollUserKey <- insert $ PollUser userId pollKey True
   return (pollKey, pollDayKeys, pollUserKey)
 
 getPollForm :: T.Text -> DB (Maybe PollForm)
@@ -30,14 +30,17 @@ getPollForm friendlyUrl =
             fmap (pollAvailableDateDate . entityVal) <$> selectList
               [PollAvailableDatePollId ==. pollId]
               [Asc PollAvailableDateDate]
-          [Entity userId user] <- selectList
+          [Entity pollUserId pollUser] <- selectList
             [PollUserPollId ==. pollId, PollUserIsPollCreator ==. True]
             [LimitTo 1]
-          return $ Just $ PollForm
-            { pollFormTitle          = pollTitle
-            , pollFormUsername       = pollUserUsername user
-            , pollFormEffectiveDate  = pollStartDate
-            , pollFormExpiryDate     = pollExpiryDate
-            , pollFormApplicableDays = applicableDays
-            }
+          mUser <- get (pollUserUserId pollUser)
+          case mUser of
+            Nothing -> return Nothing
+            Just user ->
+              return $ Just $ PollForm
+                { pollFormTitle          = pollTitle
+                , pollFormEffectiveDate  = pollStartDate
+                , pollFormExpiryDate     = pollExpiryDate
+                , pollFormApplicableDays = applicableDays
+                }
         )
