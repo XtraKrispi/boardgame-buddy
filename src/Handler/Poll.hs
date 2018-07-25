@@ -17,7 +17,6 @@ import qualified Text.Blaze.Html5.Attributes as H
 import Utils.GfyCatStyleUrls
 import Control.Monad.Random hiding (forM_)
 import Db.Polls
-import Handler.Common
 
 data MessageType = MessageSuccess | MessageInfo | MessageWarning | MessageError
 
@@ -120,7 +119,7 @@ pollForm extra = do
 getCreatePollR :: Handler Html
 getCreatePollR = do
   mmsg                     <- getMessage
-  ((res, widget), enctype) <- runFormPost pollForm
+  ((_, widget), enctype) <- runFormPost pollForm
   defaultLayout $ do
     setTitle "Boardgame Buddy | New Poll"
     $(widgetFile "polls/createPoll")
@@ -130,13 +129,16 @@ postCreatePollR = do
   ((res, widget), enctype) <- runFormPost pollForm
   case res of
     FormSuccess formData -> do
-      (poll  , days) <- liftIO . convertToPoll $ formData
-      Just userId <- maybeAuthId
-      (pollId, _   , _) <- runDB $ insertPoll poll days userId
-      setMessage $ convertMessage
-        (Message "The poll was created successfully!" MessageSuccess)
-      redirect $ EditPollR $ pollFriendlyUrl poll
-    FormFailure msgs ->
+      (poll'  , days) <- liftIO . convertToPoll $ formData
+      mUserId <- maybeAuthId
+      case mUserId of
+        Nothing -> setMessage $ convertMessage (Message "This is a test" MessageError)
+        Just userId -> do
+          _ <- runDB $ insertPoll poll' days userId
+          setMessage $ convertMessage
+            (Message "The poll was created successfully!" MessageSuccess)
+          redirect $ EditPollR $ pollFriendlyUrl poll'
+    FormFailure _ ->
       setMessage $ convertMessage (Message "This is a test" MessageError)
     _ -> setMessage $ convertMessage (Message "This is a test" MessageInfo)
   mmsg <- getMessage
@@ -155,9 +157,8 @@ getEditPollR friendlyUrl = do
 getViewPollR :: T.Text -> Handler Html
 getViewPollR friendlyUrl = do
   mPoll <- runDB $ do
-    poll <- getBy $ UniquePollUrl friendlyUrl
-    return poll
+    getBy $ UniquePollUrl friendlyUrl
   case mPoll of
     Nothing                        -> notFound
-    Just (Entity pollId Poll {..}) -> defaultLayout $ do
+    Just (Entity _ Poll {..})      -> defaultLayout $ do
       setTitle $ H.text $ "Boardgame Buddy | " <> pollTitle

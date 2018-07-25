@@ -15,8 +15,8 @@ insertPoll
   -> [Day]
   -> UserId
   -> DB (Key Poll, [Key PollAvailableDate], Key PollUser)
-insertPoll poll days userId = do
-  pollKey     <- insert poll
+insertPoll poll' days userId = do
+  pollKey     <- insert poll'
   pollDayKeys <- forM days $ \day -> do
     insert $ PollAvailableDate day pollKey
   pollUserKey <- insert $ PollUser userId pollKey True
@@ -30,17 +30,20 @@ getPollForm friendlyUrl =
             fmap (pollAvailableDateDate . entityVal) <$> selectList
               [PollAvailableDatePollId ==. pollId]
               [Asc PollAvailableDateDate]
-          [Entity pollUserId pollUser] <- selectList
+          entity <- selectList
             [PollUserPollId ==. pollId, PollUserIsPollCreator ==. True]
             [LimitTo 1]
-          mUser <- get (pollUserUserId pollUser)
-          case mUser of
-            Nothing -> return Nothing
-            Just user ->
-              return $ Just $ PollForm
-                { pollFormTitle          = pollTitle
-                , pollFormEffectiveDate  = pollStartDate
-                , pollFormExpiryDate     = pollExpiryDate
-                , pollFormApplicableDays = applicableDays
-                }
+          case entity of
+            [Entity _ pollUser] -> do
+              mUser <- get (pollUserUserId pollUser)
+              case mUser of
+                Nothing -> return Nothing
+                Just _ ->
+                  return $ Just $ PollForm
+                    { pollFormTitle          = pollTitle
+                    , pollFormEffectiveDate  = pollStartDate
+                    , pollFormExpiryDate     = pollExpiryDate
+                    , pollFormApplicableDays = applicableDays
+                    }
+            _ -> return Nothing          
         )
