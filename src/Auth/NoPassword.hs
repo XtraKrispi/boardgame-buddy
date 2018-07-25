@@ -155,15 +155,11 @@ getLoginR = do
             mEmailHash <- getEmailAndHashByTokenId tid
             case mEmailHash of
                 Nothing -> permissionDenied "Invalid login token"
-                Just (email, hash) ->                    
+                Just (email, hash, authId) ->                    
                     if (verifyToken hash loginToken)
                         then do
-                            mUser <- getUserByEmail email
-                            case mUser of
-                                Nothing -> permissionDenied "User can't be found"
-                                Just userId -> do
-                                    updateLoginHashForUser userId Nothing tid
-                                    setCredsRedirect (Creds pluginName email [])
+                            updateLoginHashForUser authId Nothing tid
+                            setCredsRedirect (Creds pluginName email [])
                         else permissionDenied "Invalid login token"
 
 
@@ -230,7 +226,7 @@ class YesodAuthPersist master => NoPasswordAuth master where
     -- Equally we do not want to pass the user's ID or email address in a URL
     -- if we don't have to, so instead we look up users by the 'TokenId' that
     -- we issued them earlier in the process.
-    getEmailAndHashByTokenId :: TokenId -> AuthHandler master (Maybe (Email, Hash))
+    getEmailAndHashByTokenId :: TokenId -> AuthHandler master (Maybe (Email, Hash, AuthId master))
 
     -- | Update a user's login hash
     --
