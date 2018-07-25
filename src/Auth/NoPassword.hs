@@ -152,13 +152,19 @@ getLoginR = do
     case (unpackTokenParam loginParam) of
         Nothing -> permissionDenied "Missing login token"
         Just (tid, loginToken) -> do
-            muser <- getEmailAndHashByTokenId tid
-            case muser of
-                Nothing -> permissionDenied "No login token sent"
+            mEmailHash <- getEmailAndHashByTokenId tid
+            case mEmailHash of
+                Nothing -> permissionDenied "Invalid login token"
                 Just (email, hash) ->                    
                     if (verifyToken hash loginToken)
-                        then setCredsRedirect (Creds pluginName email [])
-                        else permissionDenied "Incorrect login token"
+                        then do
+                            mUser <- getUserByEmail email
+                            case mUser of
+                                Nothing -> permissionDenied "User can't be found"
+                                Just userId -> do
+                                    updateLoginHashForUser userId Nothing tid
+                                    setCredsRedirect (Creds pluginName email [])
+                        else permissionDenied "Invalid login token"
 
 
 unpackTokenParam :: Maybe Text -> Maybe (TokenId, Token)
