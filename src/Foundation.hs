@@ -270,7 +270,7 @@ instance YesodAuth App where
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 
 instance NoPasswordAuth App where
-        -- | Route to a page that dispays a login form. This is not provided by
+    -- | Route to a page that dispays a login form. This is not provided by
     -- the plugin.
     loginRoute :: App -> Route App
     loginRoute _ = UserLoginR
