@@ -65,6 +65,7 @@ module Auth.NoPassword (
     , Hash
     -- ** Utility
     , loginPostR
+    , NoPasswordSettings(..)
 ) where
 
 import Prelude
@@ -83,7 +84,11 @@ import Yesod.Core
 import Yesod.Form
 import Yesod.Auth
 import Crypto.PasswordStore
-
+import Data.Time.Clock
+import Data.Time.Calendar
+import qualified Data.ByteString.Base64 as E
+import qualified Data.ByteString.Char8 as E
+import Data.Time.ISO8601
 -- Constants
 
 pluginName :: Text
@@ -98,12 +103,17 @@ type Email = Text
 type Token = Text
 type TokenId = Text
 type Hash = Text
+type CurrentTime = Text
 
 
 -- | Data type required for the Yesod form.
 newtype EmailForm = EmailForm
     { efEmail :: Email
     } deriving (Show)
+
+data NoPasswordSettings = NoPasswordSettings 
+    { noPasswordEmailTimeout :: NominalDiffTime
+    }    
 
 -- | Function to create the Yesod Auth plugin. Must be used by a type with an
 -- instance for 'NoPasswordAuth', and must be given a form to use.
@@ -132,7 +142,7 @@ postEmailR = do
         FormSuccess e -> do
             let email = efEmail e
             strength <- tokenStrength
-            (hash, token) <- liftIO $ genToken strength
+            (hash, token, currentTime) <- liftIO $ genToken strength
             muser <- getUserByEmail (efEmail e)
             tid <- liftIO genTokenId
             case muser of
@@ -140,7 +150,7 @@ postEmailR = do
                     updateLoginHashForUser user (Just hash) tid
                 Nothing ->
                     newUserWithLoginHash email hash tid
-            url <- genUrl token tid          
+            url <- genUrl token tid currentTime          
             sendLoginEmail email url
             redirect (emailSentRoute master)
 
@@ -148,54 +158,63 @@ postEmailR = do
 getLoginR :: NoPasswordAuth m => AuthHandler m TypedContent
 getLoginR = do
     paramName <- tokenParamName
-    loginParam <- lookupGetParam paramName
+    loginParam <- lookupGetParam paramName  
+    emailTimeout <- noPasswordEmailTimeout <$> settings
     case (unpackTokenParam loginParam) of
         Nothing -> permissionDenied "Missing login token"
-        Just (tid, loginToken) -> do
+        Just (tid, loginToken, currTime) -> do
             mEmailHash <- getEmailAndHashByTokenId tid
             case mEmailHash of
                 Nothing -> permissionDenied "Invalid login token"
-                Just (email, hash, authId) ->                    
-                    if (verifyToken hash loginToken)
+                Just (email, hash, authId) -> do
+                    actualCurrTime <- liftIO getCurrentTime 
+                    if (verifyToken hash loginToken (convertTime currTime) actualCurrTime emailTimeout)
                         then do
                             updateLoginHashForUser authId Nothing tid
                             setCredsRedirect (Creds pluginName email [])
                         else permissionDenied "Invalid login token"
 
 
-unpackTokenParam :: Maybe Text -> Maybe (TokenId, Token)
+unpackTokenParam :: Maybe Text -> Maybe (TokenId, Token, CurrentTime)
 unpackTokenParam param = do
     p <- param
     case (splitOn ":" p) of
-        (tid:tkn:[]) -> Just (tid, tkn)
+        (tid:tkn:currTime:[]) -> Just (tid, tkn, currTime)
         _ -> Nothing
 
 
-genToken :: Int -> IO (Hash, Token)
-genToken strength = do
+genToken :: Int -> IO (Hash, Token, CurrentTime)
+genToken strength = do    
+    currentTime <- decodeUtf8 . urlEncode True . E.encode . E.pack . formatISO8601Millis <$> getCurrentTime 
     tokenSalt <- genSaltIO
     let token = exportSalt tokenSalt
     hash <- makePassword token strength
-    return (decodeUtf8 hash, decodeUtf8 (urlEncode True token))
+    return (decodeUtf8 hash, decodeUtf8 (urlEncode True token), currentTime)
 
+convertTime :: CurrentTime -> UTCTime    
+convertTime str = 
+    let minDate = UTCTime (fromGregorian 1900 1 1) (secondsToDiffTime 0)
+        convert = maybe (minDate) id . parseISO8601 . E.unpack
+        decoded = either (const minDate) convert . E.decode . urlDecode False . encodeUtf8 $ str
+    in decoded
 
-verifyToken :: Hash -> Token -> Bool
-verifyToken hash token = verifyPassword t h
+verifyToken :: Hash -> Token -> UTCTime -> UTCTime -> NominalDiffTime -> Bool
+verifyToken hash token currTime actCurrTime emailTimeout = verifyPassword t h && timeMatches
     where
         h = encodeUtf8 hash
         t = urlDecode False (encodeUtf8 token)
-
+        timeMatches = (diffUTCTime actCurrTime currTime) <= emailTimeout
 
 genTokenId :: IO TokenId
 genTokenId = U.toText <$> U.nextRandom
 
 
-genUrl :: NoPasswordAuth m => Token -> TokenId -> AuthHandler m Text --(HandlerFor m _) Text
-genUrl token tid = do
+genUrl :: NoPasswordAuth m => Token -> TokenId -> CurrentTime -> AuthHandler m Text
+genUrl token tid currTime = do
     tm <- getRouteToParent
     render <- getUrlRender
     paramName <- tokenParamName
-    let query = "?" <> paramName <> "=" <> tid <> ":" <> token
+    let query = "?" <> paramName <> "=" <> tid <> ":" <> token <> ":" <> currTime
     return $ (render $ tm loginPostR) <> query
 
 
@@ -252,6 +271,8 @@ class YesodAuthPersist master => NoPasswordAuth master where
     tokenParamName :: AuthHandler master Text
     tokenParamName = return "tkn"
 
+    settings :: AuthHandler master NoPasswordSettings
+
     {-
         MINIMAL loginRoute
               , emailSentRoute
@@ -260,4 +281,5 @@ class YesodAuthPersist master => NoPasswordAuth master where
               , getEmailAndHashByTokenId
               , updateLoginHashForUser
               , newUserWithLoginHash
+              , settings
     -}

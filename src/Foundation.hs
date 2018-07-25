@@ -343,6 +343,12 @@ instance NoPasswordAuth App where
                                                         })
         return ()
 
+    -- | Get the settings for the NoPassword Plugin.
+    settings :: AuthHandler App NoPasswordSettings
+    settings = do
+        (appEmailTimeout . appSettings <$> getYesod) >>=
+            return . NoPasswordSettings 
+
 unsafeHandler :: App -> Handler a -> IO a
 unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 
