@@ -306,13 +306,13 @@ instance NoPasswordAuth App where
     -- Equally we do not want to pass the user's ID or email address in a URL
     -- if we don't have to, so instead we look up users by the 'TokenId' that
     -- we issued them earlier in the process.
-    getEmailAndHashByTokenId :: TokenId -> AuthHandler App (Maybe (Email, Hash))
+    getEmailAndHashByTokenId :: TokenId -> AuthHandler App (Maybe (Email, Hash, AuthId App))
     getEmailAndHashByTokenId token = do
         mUser <- runDatabaseAction $ Users.getUserByTokenId token
         return $ do
-            (Entity _ User{..}) <- mUser
+            (Entity userId User{..}) <- mUser
             hash' <- userHash
-            return (userEmail, hash')
+            return (userEmail, hash', userId)
     
     -- | Update a user's login hash
     --
@@ -342,6 +342,12 @@ instance NoPasswordAuth App where
                                                         , userToken = token
                                                         })
         return ()
+
+    -- | Get the settings for the NoPassword Plugin.
+    settings :: AuthHandler App NoPasswordSettings
+    settings = do
+        (appEmailTimeout . appSettings <$> getYesod) >>=
+            return . NoPasswordSettings 
 
 unsafeHandler :: App -> Handler a -> IO a
 unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
