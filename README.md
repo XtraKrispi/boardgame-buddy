@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/XtraKrispi/boardgame-buddy.svg?branch=master)](https://travis-ci.org/XtraKrispi/boardgame-buddy)
+
 ## Haskell Setup
 
 1. If you haven't already, [install Stack](https://haskell-lang.org/get-started)

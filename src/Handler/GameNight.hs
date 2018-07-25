@@ -6,7 +6,6 @@
 module Handler.GameNight where
 
 import Import
-import Handler.Common
 
 getGameNightsR :: Handler Html
 getGameNightsR =

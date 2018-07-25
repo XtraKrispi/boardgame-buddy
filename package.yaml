@@ -55,6 +55,8 @@ dependencies:
 - HaskellNet-SSL
 - pwstore-fast
 - http-types
+- base64-bytestring
+- iso8601-time
 
 # The library contains all of our application code. The executable
 # defined below is just a thin wrapper.

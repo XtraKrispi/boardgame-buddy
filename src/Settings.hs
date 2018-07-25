@@ -22,12 +22,13 @@ import Network.Wai.Handler.Warp    (HostPreference)
 import Yesod.Default.Config2       (applyEnvValue, configSettingsYml)
 import Yesod.Default.Util          (WidgetFileSettings, widgetFileNoReload,
                                     widgetFileReload)
+import Data.Time.Clock             (NominalDiffTime)                         
 
 data MailSettings = MailSettings {
      mailHost      :: String
     ,mailUsername  :: String
     ,mailPassword  :: String
-}                                    
+}        
 
 -- | Runtime settings to configure this application. These settings can be
 -- loaded from various sources: defaults, environment variables, config files,
@@ -69,6 +70,8 @@ data AppSettings = AppSettings
     -- ^ Indicate if auth dummy login should be enabled.
     , appMail                   :: MailSettings
     -- ^ Application Mail settings
+    , appEmailTimeout           :: NominalDiffTime
+    -- ^ Email timeout
     }
 
 instance FromJSON MailSettings where
@@ -106,6 +109,7 @@ instance FromJSON AppSettings where
 
         appAuthDummyLogin         <- o .:? "auth-dummy-login"      .!= dev
         appMail                   <- o .:  "mail"
+        appEmailTimeout           <- toNominalDiffTime <$> o .:  "emailTimeout"
         return AppSettings {..}
 
 -- | Settings for 'widgetFile', such as which template languages to support and
@@ -161,3 +165,6 @@ combineScripts :: Name -> [Route Static] -> Q Exp
 combineScripts = combineScripts'
     (appSkipCombining compileTimeAppSettings)
     combineSettings
+
+toNominalDiffTime :: Integer -> NominalDiffTime
+toNominalDiffTime = fromInteger

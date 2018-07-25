@@ -14,7 +14,7 @@
 module Foundation where
 
 import Import.NoFoundation
-import Database.Persist.Sql (ConnectionPool, runSqlPool, toSqlKey)
+import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Text.Hamlet          (hamletFile)
 import Text.Jasmine         (minifym)
 import Control.Monad.Logger (LogSource)
@@ -26,14 +26,9 @@ import qualified Data.CaseInsensitive as CI
 import qualified Data.Text.Encoding as TE
 import Auth.NoPassword
 import qualified Yesod.Auth.Message as Msg
-import           Control.Applicative      ((<$>), (<*>))
+import           Control.Applicative      ((<$>))
 import qualified Db.Users as Users
-import Model
 import qualified Utils.Email as Email
-
-import qualified Text.Blaze.Html as B
-import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as H
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -88,12 +83,22 @@ isRouteMatch (Just currentRoute) route relatedRoutes =
   currentRoute == route || elem currentRoute relatedRoutes
 isRouteMatch Nothing route _ = route == HomeR
 
+runDatabaseAction :: (HandlerSite m ~ App, MonadUnliftIO m,
+                            MonadHandler m) =>
+                           ReaderT SqlBackend m b -> m b
 runDatabaseAction action = do
   master <- getYesod
   runSqlPool action $ appConnPool master
 
+isLoggedIn :: HandlerFor App AuthResult
 isLoggedIn = maybeAuthId >>= maybe (return AuthenticationRequired) 
                                    (const $ return Authorized)
+
+handleErrors :: HtmlUrl (Route App) -> String -> Handler TypedContent
+handleErrors content msg = selectRep $ do
+    provideRep $ authLayout $ do
+        defaultMessageWidget "" content
+    provideRep $ return $ object ["message" .= (msg)]
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
@@ -123,26 +128,12 @@ instance Yesod App where
     isAuthorized _ _ = return Authorized
 
     -- TODO: #8
-    errorHandler _ = selectRep $ do
-        provideRep $ authLayout $ do
-            defaultMessageWidget "Not Found" [hamlet|<p>Blah|]
-        provideRep $ return $ object ["message" .= ("Not Found" :: Text)]
-
-    -- Yesod Middleware allows you to run code before and after each handler function.
-    -- The defaultYesodMiddleware adds the response header "Vary: Accept, Accept-Language" and performs authorization checks.
-    -- Some users may also want to add the defaultCsrfMiddleware, which:
-    --   a) Sets a cookie with a CSRF token in it.
-    --   b) Validates that incoming write requests include that token in either a header or POST parameter.
-    -- To add it, chain it together with the defaultMiddleware: yesodMiddleware = defaultYesodMiddleware . defaultCsrfMiddleware
-    -- For details, see the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package.
-    yesodMiddleware :: ToTypedContent res => Handler res -> Handler res
-    yesodMiddleware = defaultYesodMiddleware
+    errorHandler NotFound = handleErrors [hamlet|<p>Not Found!|] "Not found"
+    errorHandler _ = handleErrors [hamlet|<p>Unknown!|] "Unknown"
 
     defaultLayout :: Widget -> Handler Html
     defaultLayout widget = do
         master <- getYesod
-        mmsg <- getMessage
-
         mcurrentRoute <- getCurrentRoute
 
         -- Define the menu items of the header.
@@ -271,17 +262,9 @@ instance YesodAuth App where
 
     authPlugins _ = [authNoPassword]
 
-    authLayout :: (MonadHandler m, HandlerSite m ~ App) => WidgetFor App () -> m Html
     authLayout widget = liftHandler $ do
         master <- getYesod
-        mmsg <- getMessage
 
-        mcurrentRoute <- getCurrentRoute    
-        -- We break up the default layout into two components:
-        -- default-layout is the contents of the body tag, and
-        -- default-layout-wrapper is the entire page. Since the final
-        -- value passed to hamletToRepHtml cannot be a widget, this allows
-        -- you to use normal widget features in default-layout.
         pc <- widgetToPageContent $ do
           addScriptRemote
             "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
@@ -297,7 +280,7 @@ instance YesodAuth App where
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 
 instance NoPasswordAuth App where
-        -- | Route to a page that dispays a login form. This is not provided by
+    -- | Route to a page that dispays a login form. This is not provided by
     -- the plugin.
     loginRoute :: App -> Route App
     loginRoute _ = UserLoginR
@@ -317,7 +300,7 @@ instance NoPasswordAuth App where
         mailSettings <- appMail <$> appSettings <$> getYesod
         results <- liftIO . (Email.sendLoginEmail email url) $ mailSettings
         case results of
-            Left err -> redirect UserLoginR
+            Left _ -> redirect UserLoginR
             Right () -> return ()
 
     -- | Get a user by their email address. Used to determine if the user exists or not.
@@ -333,13 +316,13 @@ instance NoPasswordAuth App where
     -- Equally we do not want to pass the user's ID or email address in a URL
     -- if we don't have to, so instead we look up users by the 'TokenId' that
     -- we issued them earlier in the process.
-    getEmailAndHashByTokenId :: TokenId -> AuthHandler App (Maybe (Email, Hash))
+    getEmailAndHashByTokenId :: TokenId -> AuthHandler App (Maybe (Email, Hash, AuthId App))
     getEmailAndHashByTokenId token = do
         mUser <- runDatabaseAction $ Users.getUserByTokenId token
         return $ do
-            (Entity _ User{..}) <- mUser
-            hash <- userHash
-            return (userEmail, hash)
+            (Entity userId User{..}) <- mUser
+            hash' <- userHash
+            return (userEmail, hash', userId)
     
     -- | Update a user's login hash
     --
@@ -351,24 +334,30 @@ instance NoPasswordAuth App where
     -- For this reason, the token is not passed as a maybe, as some storage
     -- backends treat `NULL` values as the same.
     updateLoginHashForUser :: (AuthId App) -> Maybe Hash -> TokenId -> AuthHandler App ()
-    updateLoginHashForUser authId hash token =
+    updateLoginHashForUser authId hash' token =
         runDatabaseAction $
             Users.getUser authId >>=
                 maybe (return ()) 
-                      (\user -> Users.updateUser authId (user { userHash = hash
+                      (\user -> Users.updateUser authId (user { userHash = hash'
                                                               , userToken = token
                                                               }))
             
 
     -- | Create a new user with an email address and hash.
     newUserWithLoginHash :: Email -> Hash -> TokenId -> AuthHandler App ()
-    newUserWithLoginHash email hash token = do
+    newUserWithLoginHash email hash' token = do
         _ <- runDatabaseAction $ Users.createUser (User { userEmail = email
                                                         , userNickname = Nothing
-                                                        , userHash = Just hash
+                                                        , userHash = Just hash'
                                                         , userToken = token
                                                         })
         return ()
+
+    -- | Get the settings for the NoPassword Plugin.
+    settings :: AuthHandler App NoPasswordSettings
+    settings = do
+        (appEmailTimeout . appSettings <$> getYesod) >>=
+            return . NoPasswordSettings 
 
 unsafeHandler :: App -> Handler a -> IO a
 unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger

@@ -35,7 +35,7 @@ import Network.Wai.Middleware.RequestLogger (Destination (Logger),
                                              IPAddrSource (..),
                                              OutputFormat (..), destination,
                                              mkRequestLogger, outputFormat)
-import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
+import System.Log.FastLogger                (newStdoutLoggerSet,
                                              toLogStr)
 
 -- Import all relevant handler modules here.

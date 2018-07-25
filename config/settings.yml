@@ -38,5 +38,7 @@ mail:
   username: "XtraKrispi@gmail.com"
   password: "exqoironpncjfhvf"
 
+emailTimeout: 3600  
+
 copyright: Copyright 2018
 #analytics: UA-YOURCODE
