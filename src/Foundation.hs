@@ -122,6 +122,12 @@ instance Yesod App where
     isAuthorized GameNightsR _ = isLoggedIn
     isAuthorized _ _ = return Authorized
 
+    -- TODO: #8
+    errorHandler _ = selectRep $ do
+        provideRep $ authLayout $ do
+            defaultMessageWidget "Not Found" [hamlet|<p>Blah|]
+        provideRep $ return $ object ["message" .= ("Not Found" :: Text)]
+
     -- Yesod Middleware allows you to run code before and after each handler function.
     -- The defaultYesodMiddleware adds the response header "Vary: Accept, Accept-Language" and performs authorization checks.
     -- Some users may also want to add the defaultCsrfMiddleware, which:
