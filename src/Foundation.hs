@@ -95,10 +95,11 @@ isLoggedIn = maybeAuthId >>= maybe (return AuthenticationRequired)
                                    (const $ return Authorized)
 
 handleErrors :: Widget -> String -> Handler TypedContent
-handleErrors content msg = selectRep $ do
-    provideRep $ authLayout $ do
-        content
-    provideRep $ return $ object ["message" .= (msg)]
+handleErrors content msg = do
+    layout <- maybe (authLayout) (const defaultLayout) <$> maybeAuthId
+    selectRep $ do
+        provideRep $ layout content
+        provideRep $ return $ object ["message" .= (msg)]
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
