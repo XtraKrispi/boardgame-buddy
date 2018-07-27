@@ -94,10 +94,10 @@ isLoggedIn :: HandlerFor App AuthResult
 isLoggedIn = maybeAuthId >>= maybe (return AuthenticationRequired) 
                                    (const $ return Authorized)
 
-handleErrors :: HtmlUrl (Route App) -> String -> Handler TypedContent
+handleErrors :: Widget -> String -> Handler TypedContent
 handleErrors content msg = selectRep $ do
     provideRep $ authLayout $ do
-        defaultMessageWidget "" content
+        content
     provideRep $ return $ object ["message" .= (msg)]
 
 -- Please see the documentation for the Yesod typeclass. There are a number
@@ -128,8 +128,8 @@ instance Yesod App where
     isAuthorized _ _ = return Authorized
 
     -- TODO: #8
-    errorHandler NotFound = handleErrors [hamlet|<p>Not Found!|] "Not found"
-    errorHandler _ = handleErrors [hamlet|<p>Unknown!|] "Unknown"
+    errorHandler NotFound = handleErrors $(widgetFile "errors/404") "Not found"
+    errorHandler _ = handleErrors [whamlet|<p>Unknown!|] "Unknown"
 
     defaultLayout :: Widget -> Handler Html
     defaultLayout widget = do
