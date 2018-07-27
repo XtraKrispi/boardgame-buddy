@@ -11,7 +11,15 @@ import Auth.NoPassword (EmailForm(..), loginPostR)
 
 loginForm :: Form EmailForm
 loginForm extra = do
-  (emailRes, emailView) <- mreq emailField "" Nothing
+  let emailSettings = FieldSettings
+                        { fsLabel   = ""
+                        , fsTooltip = Nothing
+                        , fsId      = Nothing
+                        , fsName    = Nothing
+                        , fsAttrs   = [("class", "input is-large")
+                                      ,("placeholder", "Your Email")]
+                        }
+  (emailRes, emailView) <- mreq emailField emailSettings Nothing
   return (EmailForm <$> emailRes, $(widgetFile "login/loginForm"))
 
 getUserLoginR :: Handler Html

@@ -1,8 +1,4 @@
 #{extra}
 <div .field>
-  <label .label>Email
   <div .control>
     ^{fvInput emailView}
-<div .field>
-  <div .control>
-    <button .button.is-link>Login</button> 

@@ -1,7 +1,3 @@
 .notification-message {
   margin: 20px;
 }
-
-body {
-  padding-top: 3.25rem;
-}
