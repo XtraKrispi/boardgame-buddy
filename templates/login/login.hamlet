@@ -1,5 +1,13 @@
-<div .columns>
-    <div .column.is-half.is-offset-one-quarter>
-        <form enctype=#{enctype} method="POST" action="@{AuthR loginPostR}">
-            ^{widget}
-        
+<section class="hero is-success is-fullheight">
+    <div class="hero-body">
+        <div class="container has-text-centered">
+            <div class="column is-4 is-offset-4">
+                <h3 class="title has-text-grey">Boardgame Buddy
+                <p class="subtitle has-text-grey">Please enter your email address to proceed. An email will be sent with a link to login.
+                <p class="subtitle has-text-grey">If you do not have an account, we will automatically make one for you.
+                <div class="box">
+                    <figure class="avatar">
+                        <img src="@{StaticR images_logo_svg}">
+                    <form enctype=#{enctype} method="POST" action="@{AuthR loginPostR}">
+                        ^{widget}
+                        <button class="button is-block is-info is-large is-fullwidth">Send me an Email
