@@ -1,1 +1,10 @@
-<h1>Email sent!
+<section class="hero is-success is-fullheight">
+  <div class="hero-body">
+    <div class="container has-text-centered">
+      <div class="column is-4 is-offset-4">
+        <h3 class="title has-text-grey">Boardgame Buddy
+        <div class="box">
+          <figure class="avatar">
+            <img src="@{StaticR images_logo_svg}">
+          <p>An email has been sent to your email address with a link to login.
+          <p>If you don't get the email, please check your spam folder.
