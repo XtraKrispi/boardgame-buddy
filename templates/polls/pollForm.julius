@@ -1,2 +1,9 @@
 (function(){
+  var dateElements = document.querySelectorAll(".date-picker");
+  for (element in dateElements) {
+    pickmeup(dateElements[element],{
+  	  format	: 'Y-m-d',
+      min: new Date()
+    });
+  }
 })();
