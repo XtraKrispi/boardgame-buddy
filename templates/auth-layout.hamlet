@@ -1,7 +1,2 @@
 
-<!-- Static navbar -->
-<nav .navbar .is-fixed-top .is-primary>
-    <div .navbar-brand>
-        <a .navbar-item>Boardgame Buddy               
-<!-- Page Contents -->
 ^{widget}
