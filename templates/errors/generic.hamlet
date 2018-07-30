@@ -1,0 +1,4 @@
+<div #mainC.has-background-primary>
+    <div .msg>
+      <h1 .has-text-white>#{errorNumber}
+      <h3 .has-text-white>#{errorMessage}

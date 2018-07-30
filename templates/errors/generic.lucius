@@ -1,0 +1,42 @@
+#mainC {  
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: sans-serif;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+  width: 500px;
+  height: 500px; 
+  border-radius: 50%;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  .msg {
+    font-size: 16px;
+    text-align: center;
+    h1 {
+      margin: 0;
+      padding: 20px;
+      font-size: 11em;
+      transform: skewY(-5deg);
+      transition: 0.4s ease-in-out all;
+      &:hover {
+        text-shadow: 10px 10px rgba(0, 0, 0, 0.19);
+      }
+      @media (max-width: 300px) {
+        font-size: 50vw;
+      }
+    }
+    h3 {
+      color: #afd33d;
+      font-size: 2em;
+      font-weight: lighter;
+      line-height: 1;
+      padding: 30px;
+      @media (max-width: 300px) {
+        font-size: 5vw;
+      }
+    }
+  }  
+}

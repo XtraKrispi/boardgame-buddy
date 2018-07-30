@@ -3,5 +3,6 @@
 }
 
 body {
-  padding-top: 3.25rem;
+  padding-top: 3.25rem;  
+  background: #F2F6FA;
 }

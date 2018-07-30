@@ -95,11 +95,14 @@ isLoggedIn = maybeAuthId >>= maybe (return AuthenticationRequired)
                                    (const $ return Authorized)
 
 handleErrors :: Widget -> String -> Handler TypedContent
-handleErrors content msg = do
+handleErrors content errorMessage = do
     layout <- maybe (authLayout) (const defaultLayout) <$> maybeAuthId
     selectRep $ do
         provideRep $ layout content
-        provideRep $ return $ object ["message" .= (msg)]
+        provideRep $ return $ object ["message" .= (errorMessage)]
+
+genericErrors :: String -> String -> Handler TypedContent
+genericErrors errorNumber errorMessage = handleErrors $(widgetFile "errors/generic") errorMessage
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
@@ -129,8 +132,9 @@ instance Yesod App where
     isAuthorized _ _ = return Authorized
 
     -- TODO: #8
-    errorHandler NotFound = handleErrors $(widgetFile "errors/404") "Not found"
-    errorHandler _ = handleErrors [whamlet|<p>Unknown!|] "Unknown"
+    errorHandler NotFound = genericErrors "404" "Page could not be found"
+    errorHandler (PermissionDenied _) = genericErrors "403" "Permission denied"
+    errorHandler _ = genericErrors ":(" "Oops, something went wrong"
 
     defaultLayout :: Widget -> Handler Html
     defaultLayout widget = do
