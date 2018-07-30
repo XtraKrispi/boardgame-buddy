@@ -131,7 +131,6 @@ instance Yesod App where
     isAuthorized GameNightsR _ = isLoggedIn
     isAuthorized _ _ = return Authorized
 
-    -- TODO: #8
     errorHandler NotFound = genericErrors "404" "Page could not be found"
     errorHandler (PermissionDenied _) = genericErrors "403" "Permission denied"
     errorHandler _ = genericErrors ":(" "Oops, something went wrong"
