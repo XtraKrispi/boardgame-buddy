@@ -1,0 +1,4 @@
+.pickmeup {
+  border: 1px solid rgba(34, 34, 34, 0.1);
+  box-shadow: 6px 6px 17px -3px rgba(100, 100, 100, 0.4);
+}

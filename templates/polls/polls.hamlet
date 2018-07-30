@@ -7,10 +7,13 @@ $if null polls
         <h2 .subtitle>
           <a href="@{CreatePollR}" .button .is-large .is-inverted .is-primary>Get Started
 $else
+  <div .new-button>
+    <a href="@{CreatePollR}" .button .is-large .is-primary>Start a new Poll
+
   $forall Entity _ poll@(Poll title _ _ _ friendlyUrl) <- polls
     <div .card>
       <header card-header>
-        <p .card-header-title :isActive today poll:.has-background-primary.has-text-white>
+        <p .card-header-title :isActive today poll:.has-background-primary.has-text-white :not (isActive today poll):.has-text-primary>
           #{title}
       <div .card-content>
         <div .content>
