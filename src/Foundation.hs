@@ -122,7 +122,10 @@ instance Yesod App where
         120    -- timeout in minutes
         "config/client_session_key.aes"
 
+    authRoute :: App -> Maybe (Route App)
     authRoute _ = Just $ UserLoginR
+
+    isAuthorized :: Route App -> Bool -> Handler AuthResult
     isAuthorized HomeR _ = isLoggedIn
     isAuthorized CreatePollR _ = isLoggedIn
     isAuthorized PollsR _ = isLoggedIn
@@ -131,7 +134,7 @@ instance Yesod App where
     isAuthorized GameNightsR _ = isLoggedIn
     isAuthorized _ _ = return Authorized
 
-    -- TODO: #8
+    errorHandler :: ErrorResponse -> Handler TypedContent
     errorHandler NotFound = genericErrors "404" "Page could not be found"
     errorHandler (PermissionDenied _) = genericErrors "403" "Permission denied"
     errorHandler _ = genericErrors ":(" "Oops, something went wrong"
@@ -257,6 +260,7 @@ instance YesodAuthPersist App where
 
 instance YesodAuth App where
     type AuthId App = UserId
+    
     authenticate Creds{..} = do
         mUser <- liftHandler $ runDatabaseAction $ Users.getUserByEmail credsIdent
         case mUser of
