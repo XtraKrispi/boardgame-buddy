@@ -91,7 +91,7 @@ runDatabaseAction action = do
   runSqlPool action $ appConnPool master
 
 isLoggedIn :: HandlerFor App AuthResult
-isLoggedIn = maybeAuthId >>= maybe (return AuthenticationRequired) 
+isLoggedIn = maybeAuthId >>= maybe (return AuthenticationRequired)
                                    (const $ return Authorized)
 
 handleErrors :: Widget -> String -> Handler TypedContent
@@ -129,7 +129,15 @@ instance Yesod App where
     isAuthorized HomeR _ = isLoggedIn
     isAuthorized CreatePollR _ = isLoggedIn
     isAuthorized PollsR _ = isLoggedIn
-    isAuthorized (EditPollR _) _ = isLoggedIn
+    isAuthorized (EditPollR friendlyUrl) _ = do
+      mUser <- maybeAuthId
+      case mUser of
+        Nothing -> return AuthenticationRequired
+        Just userId -> do
+          polls <- runDB $ selectList [ PollFriendlyUrl ==. friendlyUrl, PollCreatedByUserId ==. userId ] [LimitTo 1]
+          case polls of
+            [_] -> return Authorized
+            _   -> return $ Unauthorized "You are not the creator of this poll"
     isAuthorized (ViewPollR _) _ = isLoggedIn
     isAuthorized GameNightsR _ = isLoggedIn
     isAuthorized _ _ = return Authorized
@@ -195,7 +203,7 @@ instance Yesod App where
           addStylesheet $ StaticR $ StaticRoute ["css", "styles.css"] []
           $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
-      
+
     -- This function creates static content files in the static folder
     -- and names them based on a hash of their content. This allows
     -- expiration dates to be set far in the future without worry of
@@ -260,7 +268,7 @@ instance YesodAuthPersist App where
 
 instance YesodAuth App where
     type AuthId App = UserId
-    
+
     authenticate Creds{..} = do
         mUser <- liftHandler $ runDatabaseAction $ Users.getUserByEmail credsIdent
         case mUser of
@@ -314,7 +322,7 @@ instance NoPasswordAuth App where
 
     -- | Get a user by their email address. Used to determine if the user exists or not.
     getUserByEmail :: Email -> AuthHandler App (Maybe (AuthId App))
-    getUserByEmail email = 
+    getUserByEmail email =
         (fmap . fmap $ entityKey) <$> runDatabaseAction $ Users.getUserByEmail email
 
     -- | Get a Hash by a TokenId.
@@ -332,7 +340,7 @@ instance NoPasswordAuth App where
             (Entity userId User{..}) <- mUser
             hash' <- userHash
             return (userEmail, hash', userId)
-    
+
     -- | Update a user's login hash
     --
     -- This is also used to blank out the hash once the user has logged in, or
@@ -346,11 +354,11 @@ instance NoPasswordAuth App where
     updateLoginHashForUser authId hash' token =
         runDatabaseAction $
             Users.getUser authId >>=
-                maybe (return ()) 
+                maybe (return ())
                       (\user -> Users.updateUser authId (user { userHash = hash'
                                                               , userToken = token
                                                               }))
-            
+
 
     -- | Create a new user with an email address and hash.
     newUserWithLoginHash :: Email -> Hash -> TokenId -> AuthHandler App ()
@@ -366,7 +374,7 @@ instance NoPasswordAuth App where
     settings :: AuthHandler App NoPasswordSettings
     settings = do
         (appEmailTimeout . appSettings <$> getYesod) >>=
-            return . NoPasswordSettings 
+            return . NoPasswordSettings
 
 unsafeHandler :: App -> Handler a -> IO a
 unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger

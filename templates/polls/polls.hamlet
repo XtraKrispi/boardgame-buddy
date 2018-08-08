@@ -23,5 +23,6 @@ $else
           <time datetime="2016-1-1">11:09 PM - 1 Jan 2016
       <footer .card-footer>
         <a href="@{ViewPollR friendlyUrl}" .card-footer-item>View
-        <a href="@{EditPollR friendlyUrl}" .card-footer-item>Edit
+        $if isCreator
+          <a href="@{EditPollR friendlyUrl}" .card-footer-item>Edit
         <a href="#" .card-footer-item>Delete

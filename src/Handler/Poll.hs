@@ -120,7 +120,7 @@ pollForm extra = do
 getPollsR :: Handler Html
 getPollsR = do
   mUser <- maybeAuthId
-  polls <- maybe (pure []) (\userId -> runDB $ fmap (\poll@(Entity _ poll') -> (poll, pollCreatedByUserId poll' == userId)) <$> getPolls) mUser
+  polls <- maybe (pure []) (\userId -> runDB $ fmap (\dbPoll@(Entity _ poll') -> (dbPoll, pollCreatedByUserId poll' == userId)) <$> getPolls) mUser
   today <- liftIO $ utctDay <$> getCurrentTime
   defaultLayout $ do
     setTitle "Boardgame Buddy | Polls"
