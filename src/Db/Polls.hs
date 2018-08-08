@@ -10,6 +10,9 @@ module Db.Polls where
 import Import
 import qualified Data.Text as T
 
+getPolls :: DB [Entity Poll]
+getPolls = selectList [ PollExpiryDate ==. Nothing ] [ Asc PollStartDate]
+
 insertPoll
   :: Poll
   -> [Day]
@@ -19,7 +22,7 @@ insertPoll poll' days userId = do
   pollKey     <- insert poll'
   pollDayKeys <- forM days $ \day -> do
     insert $ PollAvailableDate day pollKey
-  pollUserKey <- insert $ PollUser userId pollKey True
+  pollUserKey <- insert $ PollUser userId pollKey
   return (pollKey, pollDayKeys, pollUserKey)
 
 getPollForm :: T.Text -> DB (Maybe PollForm)
@@ -30,20 +33,10 @@ getPollForm friendlyUrl =
             fmap (pollAvailableDateDate . entityVal) <$> selectList
               [PollAvailableDatePollId ==. pollId]
               [Asc PollAvailableDateDate]
-          entity <- selectList
-            [PollUserPollId ==. pollId, PollUserIsPollCreator ==. True]
-            [LimitTo 1]
-          case entity of
-            [Entity _ pollUser] -> do
-              mUser <- get (pollUserUserId pollUser)
-              case mUser of
-                Nothing -> return Nothing
-                Just _ ->
-                  return $ Just $ PollForm
-                    { pollFormTitle          = pollTitle
-                    , pollFormEffectiveDate  = pollStartDate
-                    , pollFormExpiryDate     = pollExpiryDate
-                    , pollFormApplicableDays = applicableDays
-                    }
-            _ -> return Nothing          
+          return $ Just $ PollForm
+            { pollFormTitle          = pollTitle
+            , pollFormEffectiveDate  = pollStartDate
+            , pollFormExpiryDate     = pollExpiryDate
+            , pollFormApplicableDays = applicableDays
+            }
         )

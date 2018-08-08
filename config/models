@@ -3,7 +3,7 @@
 
 User json
     email Text
-    nickname Text Maybe    
+    nickname Text Maybe
     token Text
     hash Text Maybe
     UniqueEmail email
@@ -17,6 +17,7 @@ Poll json
     expiryDate Day Maybe
     closedDate Day Maybe
     friendlyUrl Text
+    createdByUserId UserId
     UniquePollUrl friendlyUrl
     deriving Eq
     deriving Show
@@ -30,7 +31,6 @@ PollAvailableDate json
 PollUser json
     userId UserId
     pollId PollId
-    isPollCreator Bool
     UniquePollUser userId pollId
     deriving Eq
     deriving Show
