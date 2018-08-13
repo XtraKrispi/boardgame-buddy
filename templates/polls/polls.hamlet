@@ -25,4 +25,5 @@ $else
         <a href="@{ViewPollR friendlyUrl}" .card-footer-item>View
         $if isCreator
           <a href="@{EditPollR friendlyUrl}" .card-footer-item>Edit
-        <a href="#" .card-footer-item>Delete
+        $if isCreator
+          <a href="#" .card-footer-item>Delete

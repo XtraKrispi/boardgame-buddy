@@ -10,8 +10,8 @@ module Db.Polls where
 import Import
 import qualified Data.Text as T
 
-getPolls :: DB [Entity Poll]
-getPolls = selectList [ PollExpiryDate ==. Nothing ] [ Asc PollStartDate]
+getActivePolls :: DB [Entity Poll]
+getActivePolls = selectList [ PollExpiryDate ==. Nothing ] [ Asc PollStartDate]
 
 insertPoll
   :: Poll
