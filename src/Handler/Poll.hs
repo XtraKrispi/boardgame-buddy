@@ -32,18 +32,19 @@ instance B.ToMarkup Message where
                   MessageInfo -> "is-info"
                   MessageWarning -> "is-warning"
                   MessageError -> "is-danger"
-    H.div B.! H.class_ ("notification " <> class_ <> " notification-message") $ do
+    H.div B.! H.class_ ("notification " <> class_ <> " notification-message") $
       H.text msg
 
-convertToPoll :: MonadRandom m => PollForm -> m (Poll, [Day])
-convertToPoll PollForm {..} = do
+convertToPoll :: MonadRandom m => UserId -> PollForm -> m (Poll, [Day])
+convertToPoll userId PollForm {..} = do
   pollFriendlyUrl <- generate (UrlGenerationConfig "-" Lowercase 2)
   return (Poll {..}, pollFormApplicableDays)
  where
-  pollTitle      = pollFormTitle
-  pollStartDate  = pollFormEffectiveDate
-  pollExpiryDate = pollFormExpiryDate
-  pollClosedDate = Nothing
+  pollTitle           = pollFormTitle
+  pollStartDate       = pollFormEffectiveDate
+  pollExpiryDate      = pollFormExpiryDate
+  pollClosedDate      = Nothing
+  pollCreatedByUserId = userId
 
 convertMessage :: Message -> Html
 convertMessage = B.toMarkup
@@ -52,10 +53,10 @@ applicableDaysId :: Text
 applicableDaysId = "applicableDays"
 
 isActive :: Day -> Poll -> Bool
-isActive currentDate (Poll _ startDate Nothing Nothing _) =
+isActive currentDate (Poll _ startDate Nothing Nothing _ _) =
   currentDate >= startDate
-isActive _ (Poll _ _ _ (Just _) _) = False
-isActive currentDate (Poll _ startDate (Just endDate) Nothing _) =
+isActive _ (Poll _ _ _ (Just _) _ _) = False
+isActive currentDate (Poll _ startDate (Just endDate) Nothing _ _) =
   currentDate >= startDate && currentDate <= endDate
 
 convertToDays :: Text -> [Day]
@@ -68,14 +69,6 @@ applicableDaysField :: Field Handler [Day]
 applicableDaysField =
   customErrorMessage "Must pick at least one day!"
     $ convertField convertToDays convertFromDays hiddenField
-
-getPollsR :: Handler Html
-getPollsR = do
-  today <- liftIO $ utctDay <$> getCurrentTime
-  polls <- runDB $ selectList [] [Asc PollStartDate]
-  defaultLayout $ do
-    setTitle "Boardgame Buddy | Polls"
-    $(widgetFile "polls/polls")
 
 pollForm :: Form PollForm
 pollForm extra = do
@@ -124,6 +117,25 @@ pollForm extra = do
           <*> applicableDaysRes
   return (pollFormRes, $(widgetFile "polls/pollForm"))
 
+getPollsR :: Handler Html
+getPollsR = do
+  mUser <- maybeAuthId
+  polls <- maybe
+    (pure [])
+    (\userId ->
+      runDB
+        $   fmap
+              (\dbPoll@(Entity _ poll') ->
+                (dbPoll, pollCreatedByUserId poll' == userId)
+              )
+        <$> getActivePolls
+    )
+    mUser
+  today <- liftIO $ utctDay <$> getCurrentTime
+  defaultLayout $ do
+    setTitle "Boardgame Buddy | Polls"
+    $(widgetFile "polls/polls")
+
 getCreatePollR :: Handler Html
 getCreatePollR = do
   mmsg                   <- getMessage
@@ -137,13 +149,13 @@ postCreatePollR = do
   ((res, widget), enctype) <- runFormPost pollForm
   case res of
     FormSuccess formData -> do
-      (poll', days) <- liftIO . convertToPoll $ formData
-      mUserId       <- maybeAuthId
+      mUserId <- maybeAuthId
       case mUserId of
         Nothing ->
           setMessage $ convertMessage (Message "This is a test" MessageError)
         Just userId -> do
-          _ <- runDB $ insertPoll poll' days userId
+          (poll', days) <- liftIO . convertToPoll userId $ formData
+          _             <- runDB $ insertPoll poll' days userId
           setMessage $ convertMessage
             (Message "The poll was created successfully!" MessageSuccess)
           redirect $ EditPollR $ pollFriendlyUrl poll'
@@ -159,15 +171,19 @@ getEditPollR :: T.Text -> Handler Html
 getEditPollR friendlyUrl = do
   mPollForm <- runDB $ getPollForm friendlyUrl
   case mPollForm of
-    Nothing            -> notFound
-    Just PollForm {..} -> defaultLayout $ do
-      setTitle . H.text $ "Boardgame Buddy | Edit " <> pollFormTitle
+    Nothing -> notFound
+    Just PollForm {..} ->
+      defaultLayout
+        $  setTitle
+        .  H.text
+        $  "Boardgame Buddy | Edit "
+        <> pollFormTitle
 
 getViewPollR :: T.Text -> Handler Html
 getViewPollR friendlyUrl = do
-  mPoll <- runDB $ do
-    getBy $ UniquePollUrl friendlyUrl
+  mPoll <- runDB $ getBy $ UniquePollUrl friendlyUrl
   case mPoll of
     Nothing                   -> notFound
     Just (Entity _ Poll {..}) -> defaultLayout $ do
       setTitle $ H.text $ "Boardgame Buddy | " <> pollTitle
+      $(widgetFile "polls/viewPoll")

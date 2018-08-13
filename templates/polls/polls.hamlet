@@ -10,7 +10,7 @@ $else
   <div .new-button>
     <a href="@{CreatePollR}" .button .is-large .is-primary>Start a new Poll
 
-  $forall Entity _ poll@(Poll title _ _ _ friendlyUrl) <- polls
+  $forall (Entity _ poll@(Poll title _ _ _ friendlyUrl _), isCreator) <- polls
     <div .card>
       <header card-header>
         <p .card-header-title :isActive today poll:.has-background-primary.has-text-white :not (isActive today poll):.has-text-primary>
@@ -23,5 +23,7 @@ $else
           <time datetime="2016-1-1">11:09 PM - 1 Jan 2016
       <footer .card-footer>
         <a href="@{ViewPollR friendlyUrl}" .card-footer-item>View
-        <a href="@{EditPollR friendlyUrl}" .card-footer-item>Edit
-        <a href="#" .card-footer-item>Delete
+        $if isCreator
+          <a href="@{EditPollR friendlyUrl}" .card-footer-item>Edit
+        $if isCreator
+          <a href="#" .card-footer-item>Delete
