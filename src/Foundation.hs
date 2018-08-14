@@ -42,12 +42,20 @@ data App = App
     , appLogger      :: Logger
     }
 
-data MenuItem = MenuItem
-    { menuItemLabel :: Text
-    , menuItemRoute :: Route App
-    , menuItemAccessCallback :: Bool
-    , menuItemRelatedRoutes :: [Route App]
-    }
+data HyperlinkMenuItem = HyperlinkMenuItem
+  { hyperlinkMenuItemLabel          :: Text
+  , hyperlinkMenuItemRoute          :: Route App
+  , hyperlinkMenuItemAccessCallback :: Bool
+  , hyperlinkMenuItemRelatedRoutes  :: [Route App]
+  }
+
+data DropdownMenuItem = DropdownMenuItem
+  { dropdownMenuItemLabel           :: Text
+  , dropdownMenuItemAccessCallback  :: Bool
+  , dropdownMenuItemChildren        :: [HyperlinkMenuItem]
+  }
+
+data MenuItem = Hyperlink HyperlinkMenuItem | Dropdown DropdownMenuItem
 
 data MenuTypes
     = NavbarLeft MenuItem
@@ -79,30 +87,37 @@ data UserLoginForm = UserLoginForm { _loginEmail :: Text }
 isRouteMatch :: Maybe (Route App) -> Route App -> [Route App] -> Bool
 isRouteMatch (Just (EditPollR _)) PollsR _ = True
 isRouteMatch (Just (ViewPollR _)) PollsR _ = True
+isRouteMatch (Just CreatePollR  ) PollsR _ = True
 isRouteMatch (Just currentRoute) route relatedRoutes =
   currentRoute == route || elem currentRoute relatedRoutes
 isRouteMatch Nothing route _ = route == HomeR
 
-runDatabaseAction :: (HandlerSite m ~ App, MonadUnliftIO m,
-                            MonadHandler m) =>
-                           ReaderT SqlBackend m b -> m b
+runDatabaseAction
+  :: (HandlerSite m ~ App, MonadUnliftIO m, MonadHandler m)
+  => ReaderT SqlBackend m b
+  -> m b
 runDatabaseAction action = do
   master <- getYesod
   runSqlPool action $ appConnPool master
 
 isLoggedIn :: HandlerFor App AuthResult
-isLoggedIn = maybeAuthId >>= maybe (return AuthenticationRequired)
-                                   (const $ return Authorized)
+isLoggedIn = maybeAuthId
+  >>= maybe (return AuthenticationRequired) (const $ return Authorized)
 
 handleErrors :: Widget -> String -> Handler TypedContent
 handleErrors content errorMessage = do
-    layout <- maybe (authLayout) (const defaultLayout) <$> maybeAuthId
-    selectRep $ do
-        provideRep $ layout content
-        provideRep $ return $ object ["message" .= (errorMessage)]
+  layout <- maybe authLayout (const defaultLayout) <$> maybeAuthId
+  selectRep $ do
+    provideRep $ layout content
+    provideRep $ return $ object ["message" .= errorMessage]
 
 genericErrors :: String -> String -> Handler TypedContent
-genericErrors errorNumber errorMessage = handleErrors $(widgetFile "errors/generic") errorMessage
+genericErrors errorNumber errorMessage =
+  handleErrors $(widgetFile "errors/generic") errorMessage
+
+menuItemAccessCallback :: MenuItem -> Bool
+menuItemAccessCallback (Hyperlink h) = hyperlinkMenuItemAccessCallback h
+menuItemAccessCallback (Dropdown d) = dropdownMenuItemAccessCallback d
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
@@ -151,58 +166,69 @@ instance Yesod App where
     defaultLayout widget = do
         master <- getYesod
         mcurrentRoute <- getCurrentRoute
+        mUserId <- maybeAuthId
+        case mUserId of
+            Nothing -> notFound
+            Just userId -> do
+              mUser <- runDB $ getEntity userId
+              case mUser of
+                Nothing -> notFound
+                Just (Entity _ user) -> do
+                  -- Define the menu items of the header.
+                  let menuItems =
+                          [ NavbarLeft $ Hyperlink $ HyperlinkMenuItem
+                              { hyperlinkMenuItemLabel          = "Home"
+                              , hyperlinkMenuItemRoute          = HomeR
+                              , hyperlinkMenuItemAccessCallback = True
+                              , hyperlinkMenuItemRelatedRoutes  = []
+                              }
+                          , NavbarLeft $ Hyperlink $ HyperlinkMenuItem
+                              { hyperlinkMenuItemLabel          = "Polls"
+                              , hyperlinkMenuItemRoute          = PollsR
+                              , hyperlinkMenuItemAccessCallback = True
+                              , hyperlinkMenuItemRelatedRoutes  = [CreatePollR]
+                              }
+                          , NavbarLeft $ Hyperlink $ HyperlinkMenuItem
+                              { hyperlinkMenuItemLabel          = "Game Nights"
+                              , hyperlinkMenuItemRoute          = GameNightsR
+                              , hyperlinkMenuItemAccessCallback = True
+                              , hyperlinkMenuItemRelatedRoutes  = []
+                              }
+                          , NavbarRight $ Dropdown $ DropdownMenuItem
+                              { dropdownMenuItemLabel           = userEmail user
+                              , dropdownMenuItemAccessCallback  = True
+                              , dropdownMenuItemChildren        = [
+                                HyperlinkMenuItem
+                                  { hyperlinkMenuItemLabel          = "Log Out"
+                                  , hyperlinkMenuItemRoute          = AuthR LogoutR
+                                  , hyperlinkMenuItemAccessCallback = True
+                                  , hyperlinkMenuItemRelatedRoutes  = []
+                                  }
+                                ]
+                              }
+                          ]
 
-        -- Define the menu items of the header.
-        let menuItems =
-                [ NavbarLeft $ MenuItem
-                    { menuItemLabel = "Home"
-                    , menuItemRoute = HomeR
-                    , menuItemAccessCallback = True
-                    , menuItemRelatedRoutes = []
-                    }
-                , NavbarLeft $ MenuItem
-                    { menuItemLabel = "Polls"
-                    , menuItemRoute = PollsR
-                    , menuItemAccessCallback = True
-                    , menuItemRelatedRoutes = [CreatePollR]
-                    }
-                , NavbarLeft $ MenuItem
-                    { menuItemLabel = "Game Nights"
-                    , menuItemRoute = GameNightsR
-                    , menuItemAccessCallback = True
-                    , menuItemRelatedRoutes = []
-                    }
-                , NavbarRight $ MenuItem
-                    { menuItemLabel = "Log Out"
-                    , menuItemRoute = AuthR LogoutR
-                    , menuItemAccessCallback = True
-                    , menuItemRelatedRoutes = []
-                    }
-                ]
+                  let navbarLeftMenuItems = [x | NavbarLeft x <- menuItems]
+                  let navbarRightMenuItems = [x | NavbarRight x <- menuItems]
 
-        let navbarLeftMenuItems = [x | NavbarLeft x <- menuItems]
-        let navbarRightMenuItems = [x | NavbarRight x <- menuItems]
-
-        let navbarLeftFilteredMenuItems = [x | x <- navbarLeftMenuItems, menuItemAccessCallback x]
-        let navbarRightFilteredMenuItems = [x | x <- navbarRightMenuItems, menuItemAccessCallback x]
-        -- We break up the default layout into two components:
-        -- default-layout is the contents of the body tag, and
-        -- default-layout-wrapper is the entire page. Since the final
-        -- value passed to hamletToRepHtml cannot be a widget, this allows
-        -- you to use normal widget features in default-layout.
-        pc <- widgetToPageContent $ do
-          addScriptRemote
-            "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
-          addScriptRemote
-            "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
-          addScriptRemote
-            "https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
-          addScriptRemote
-            "https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
-          addScript $ StaticR js_pickmeup_js
-          addStylesheet $ StaticR $ StaticRoute ["css", "styles.css"] []
-          $(widgetFile "default-layout")
-        withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
+                  let navbarLeftFilteredMenuItems = [x | x <- navbarLeftMenuItems, menuItemAccessCallback x]
+                  let navbarRightFilteredMenuItems = [x | x <- navbarRightMenuItems, menuItemAccessCallback x]
+                  -- We break up the default layout into two components:
+                  -- default-layout is the contents of the body tag, and
+                  -- default-layout-wrapper is the entire page. Since the final
+                  -- value passed to hamletToRepHtml cannot be a widget, this allows
+                  -- you to use normal widget features in default-layout.
+                  pc <- widgetToPageContent $ do
+                    mapM_ addScriptRemote [
+                       "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
+                      ,"https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
+                      ,"https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
+                      ,"https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
+                      ]
+                    addScript $ StaticR js_pickmeup_js
+                    addStylesheet $ StaticR $ StaticRoute ["css", "styles.css"] []
+                    $(widgetFile "default-layout")
+                  withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 
     -- This function creates static content files in the static folder
     -- and names them based on a hash of their content. This allows
@@ -283,14 +309,12 @@ instance YesodAuth App where
         master <- getYesod
 
         pc <- widgetToPageContent $ do
-          addScriptRemote
-            "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
-          addScriptRemote
-            "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
-          addScriptRemote
-            "https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
-          addScriptRemote
-            "https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
+          mapM_ addScriptRemote [
+             "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
+            ,"https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
+            ,"https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
+            ,"https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
+            ]
           addScript $ StaticR js_pickmeup_js
           addStylesheet $ StaticR $ StaticRoute ["css", "styles.css"] []
           $(widgetFile "auth-layout")
@@ -314,8 +338,8 @@ instance NoPasswordAuth App where
                    -> Text  -- ^ The URL that will log the user in
                    -> AuthHandler App ()
     sendLoginEmail email url = do
-        mailSettings <- appMail <$> appSettings <$> getYesod
-        results <- liftIO . (Email.sendLoginEmail email url) $ mailSettings
+        mailSettings <- appMail . appSettings <$> getYesod
+        results <- liftIO . Email.sendLoginEmail email url $ mailSettings
         case results of
             Left _ -> redirect UserLoginR
             Right () -> return ()
@@ -372,9 +396,8 @@ instance NoPasswordAuth App where
 
     -- | Get the settings for the NoPassword Plugin.
     settings :: AuthHandler App NoPasswordSettings
-    settings = do
-        (appEmailTimeout . appSettings <$> getYesod) >>=
-            return . NoPasswordSettings
+    settings =
+        NoPasswordSettings <$> (appEmailTimeout . appSettings <$> getYesod)
 
 unsafeHandler :: App -> Handler a -> IO a
 unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger

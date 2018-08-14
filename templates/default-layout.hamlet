@@ -1,14 +1,26 @@
 
 <!-- Static navbar -->
 <nav .navbar .is-fixed-top .is-primary>
-    <div .navbar-brand>
-        <a .navbar-item href="@{HomeR}">Boardgame Buddy
-    <div .navbar-menu>
-        <div .navbar-start>
-            $forall MenuItem label route _ childRoutes <- navbarLeftFilteredMenuItems
-                <a .navbar-item :isRouteMatch mcurrentRoute route childRoutes:.is-active href="@{route}">#{label}                    
-        <div .navbar-end>
-            $forall MenuItem label route _ childRoutes <- navbarRightFilteredMenuItems
-                <a .navbar-item :isRouteMatch mcurrentRoute route childRoutes:.is-active href="@{route}">#{label}                    
+  <div .navbar-brand>
+    <a .navbar-item href="@{HomeR}">Boardgame Buddy
+  <div .navbar-menu>
+    <div .navbar-start>
+      $forall menuItem <- navbarLeftFilteredMenuItems
+        $case menuItem
+          $of (Hyperlink (HyperlinkMenuItem label route _ childRoutes))
+            <a .navbar-item :isRouteMatch mcurrentRoute route childRoutes:.is-active href="@{route}">#{label}
+          $of (Dropdown _)
+            <div>Not implemented
+    <div .navbar-end>
+      $forall menuItem <- navbarRightFilteredMenuItems
+        $case menuItem
+          $of (Hyperlink (HyperlinkMenuItem label route _ childRoutes))
+            <a .navbar-item :isRouteMatch mcurrentRoute route childRoutes:.is-active href="@{route}">#{label}
+          $of (Dropdown (DropdownMenuItem label _ children))
+            <div .navbar-item.has-dropdown.is-hoverable>
+              <a .navbar-link>#{label}
+              <div .navbar-dropdown>
+                $forall (HyperlinkMenuItem childLabel route _ _) <- children
+                  <a .navbar-item href="@{route}">#{childLabel}
 <!-- Page Contents -->
 ^{widget}
