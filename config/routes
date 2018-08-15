@@ -18,3 +18,5 @@
 
 /session/login UserLoginR GET
 /session/email EmailSentR GET
+
+/user/preferences UserPreferencesR GET POST

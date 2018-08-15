@@ -82,7 +82,7 @@ type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
 type DB a = forall (m :: * -> *).
     (MonadIO m) => ReaderT SqlBackend m a
 
-data UserLoginForm = UserLoginForm { _loginEmail :: Text }
+newtype UserLoginForm = UserLoginForm { _loginEmail :: Text }
 
 isRouteMatch :: Maybe (Route App) -> Route App -> [Route App] -> Bool
 isRouteMatch (Just (EditPollR _)) PollsR _ = True
@@ -118,6 +118,14 @@ genericErrors errorNumber errorMessage =
 menuItemAccessCallback :: MenuItem -> Bool
 menuItemAccessCallback (Hyperlink h) = hyperlinkMenuItemAccessCallback h
 menuItemAccessCallback (Dropdown d) = dropdownMenuItemAccessCallback d
+
+addScripts :: Widget
+addScripts = mapM_ addScriptRemote [
+  "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
+ ,"https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
+ ,"https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
+ ,"https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
+ ]
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
@@ -155,7 +163,13 @@ instance Yesod App where
             _   -> return $ Unauthorized "You are not the creator of this poll"
     isAuthorized (ViewPollR _) _ = isLoggedIn
     isAuthorized GameNightsR _ = isLoggedIn
-    isAuthorized _ _ = return Authorized
+    isAuthorized UserPreferencesR _ = isLoggedIn
+    isAuthorized (AuthR _) _ = return Authorized
+    isAuthorized (StaticR _) _ = return Authorized
+    isAuthorized FaviconR _ = return Authorized
+    isAuthorized RobotsR _ = return Authorized
+    isAuthorized UserLoginR _ = return Authorized
+    isAuthorized EmailSentR _ = return Authorized
 
     errorHandler :: ErrorResponse -> Handler TypedContent
     errorHandler NotFound = genericErrors "404" "Page could not be found"
@@ -199,6 +213,12 @@ instance Yesod App where
                               , dropdownMenuItemAccessCallback  = True
                               , dropdownMenuItemChildren        = [
                                 HyperlinkMenuItem
+                                  { hyperlinkMenuItemLabel          = "User Preferences"
+                                  , hyperlinkMenuItemRoute          = UserPreferencesR
+                                  , hyperlinkMenuItemAccessCallback = True
+                                  , hyperlinkMenuItemRelatedRoutes  = []
+                                  }
+                              , HyperlinkMenuItem
                                   { hyperlinkMenuItemLabel          = "Log Out"
                                   , hyperlinkMenuItemRoute          = AuthR LogoutR
                                   , hyperlinkMenuItemAccessCallback = True
@@ -219,12 +239,7 @@ instance Yesod App where
                   -- value passed to hamletToRepHtml cannot be a widget, this allows
                   -- you to use normal widget features in default-layout.
                   pc <- widgetToPageContent $ do
-                    mapM_ addScriptRemote [
-                       "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
-                      ,"https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
-                      ,"https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
-                      ,"https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
-                      ]
+                    addScripts
                     addScript $ StaticR js_pickmeup_js
                     addStylesheet $ StaticR $ StaticRoute ["css", "styles.css"] []
                     $(widgetFile "default-layout")
@@ -309,12 +324,7 @@ instance YesodAuth App where
         master <- getYesod
 
         pc <- widgetToPageContent $ do
-          mapM_ addScriptRemote [
-             "https://cdn.jsdelivr.net/npm/date-input-polyfill@2.14.0/date-input-polyfill.dist.min.js"
-            ,"https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"
-            ,"https://cdnjs.cloudflare.com/ajax/libs/ramda/0.25.0/ramda.min.js"
-            ,"https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"
-            ]
+          addScripts
           addScript $ StaticR js_pickmeup_js
           addStylesheet $ StaticR $ StaticRoute ["css", "styles.css"] []
           $(widgetFile "auth-layout")

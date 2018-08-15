@@ -1,0 +1,10 @@
+#{extra}
+<div .field>
+  <label .label>Nickname
+  <div .control>
+    ^{fvInput nicknameView}
+<div .field.is-grouped>
+  <div .control>
+    <button .button.is-link>Submit</button>
+  <div .control>
+    <a href="@{backRoute}" .button.is-text>Cancel</a>
