@@ -6,6 +6,7 @@ User json
     nickname Text Maybe
     token Text
     hash Text Maybe
+    bggUsername Text Maybe
     UniqueEmail email
     UniqueToken token
     deriving Eq

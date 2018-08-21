@@ -17,23 +17,8 @@ import qualified Text.Blaze.Html5.Attributes as H
 import Utils.GfyCatStyleUrls
 import Control.Monad.Random hiding (forM_)
 import Db.Polls
+import Utils.Message
 
-data MessageType = MessageSuccess | MessageInfo | MessageWarning | MessageError
-
-data Message = Message {
-   message :: Text
-  ,messageType :: MessageType
-}
-
-instance B.ToMarkup Message where
-  toMarkup (Message msg t) = do
-    let class_ = case t of
-                  MessageSuccess -> "is-primary"
-                  MessageInfo -> "is-info"
-                  MessageWarning -> "is-warning"
-                  MessageError -> "is-danger"
-    H.div B.! H.class_ ("notification " <> class_ <> " notification-message") $
-      H.text msg
 
 convertToPoll :: MonadRandom m => UserId -> PollForm -> m (Poll, [Day])
 convertToPoll userId PollForm {..} = do
@@ -45,9 +30,6 @@ convertToPoll userId PollForm {..} = do
   pollExpiryDate      = pollFormExpiryDate
   pollClosedDate      = Nothing
   pollCreatedByUserId = userId
-
-convertMessage :: Message -> Html
-convertMessage = B.toMarkup
 
 applicableDaysId :: Text
 applicableDaysId = "applicableDays"
