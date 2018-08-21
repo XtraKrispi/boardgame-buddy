@@ -11,8 +11,9 @@ import Utils.Message
 import Db.Users
 import qualified Text.Blaze.Html5 as H
 
-newtype UserPreferencesForm = UserPreferencesForm
+data UserPreferencesForm = UserPreferencesForm
   { userPreferencesFormNickname :: Maybe Text
+  , userPreferencesFormBggUsername :: Maybe Text
   }
 
 userPreferencesForm :: User -> Form UserPreferencesForm
@@ -29,7 +30,10 @@ userPreferencesForm User{..} extra = do
   (nicknameRes, nicknameView) <- mopt textField
                                       bulmaControlFieldSettings
                                       (return userNickname)
-  let userPreferencesFormRes = UserPreferencesForm <$> nicknameRes
+  (bggUsernameRes, bggUsernameView) <- mopt textField
+                                      bulmaControlFieldSettings
+                                      (return userBggUsername)
+  let userPreferencesFormRes = UserPreferencesForm <$> nicknameRes <*> bggUsernameRes
   return
     ( userPreferencesFormRes
     , $(widgetFile "user-preferences/userPreferencesForm")
@@ -55,10 +59,10 @@ postUserPreferencesR = do
     Just (Entity userId user) -> do
       ((res, widget), enctype) <- runFormPost (userPreferencesForm user)
       case res of
-        FormSuccess formData -> do
+        FormSuccess UserPreferencesForm{..} -> do
           runDB $ updateUser
                   userId
-                  (user { userNickname = userPreferencesFormNickname formData })
+                  (user { userNickname = userPreferencesFormNickname, userBggUsername = userPreferencesFormBggUsername })
           setMessage $ convertMessage
               (Message "User preferences were updated successfully!"
                        MessageSuccess

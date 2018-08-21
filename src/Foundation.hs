@@ -401,6 +401,7 @@ instance NoPasswordAuth App where
                                                         , userNickname = Nothing
                                                         , userHash = Just hash'
                                                         , userToken = token
+                                                        , userBggUsername = Nothing
                                                         })
         return ()
 

@@ -3,6 +3,10 @@
   <label .label>Nickname
   <div .control>
     ^{fvInput nicknameView}
+<div .field>
+  <label .label>Board Game Geek Username (if applicable)
+  <div .control>
+    ^{fvInput bggUsernameView}
 <div .field.is-grouped>
   <div .control>
     <button .button.is-link>Submit</button>
