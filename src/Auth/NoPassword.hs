@@ -1,14 +1,10 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE ExplicitForAll #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- | This auth plugin for Yesod enabled simple passwordless authentication.
 --
@@ -89,6 +85,7 @@ import Data.Time.Calendar
 import qualified Data.ByteString.Base64 as E
 import qualified Data.ByteString.Char8 as E
 import Data.Time.ISO8601
+import Data.Maybe
 -- Constants
 
 pluginName :: Text
@@ -111,9 +108,9 @@ newtype EmailForm = EmailForm
     { efEmail :: Email
     } deriving (Show)
 
-data NoPasswordSettings = NoPasswordSettings 
+newtype NoPasswordSettings = NoPasswordSettings
     { noPasswordEmailTimeout :: NominalDiffTime
-    }    
+    }
 
 -- | Function to create the Yesod Auth plugin. Must be used by a type with an
 -- instance for 'NoPasswordAuth', and must be given a form to use.
@@ -150,7 +147,7 @@ postEmailR = do
                     updateLoginHashForUser user (Just hash) tid
                 Nothing ->
                     newUserWithLoginHash email hash tid
-            url <- genUrl token tid currentTime          
+            url <- genUrl token tid currentTime
             sendLoginEmail email url
             redirect (emailSentRoute master)
 
@@ -158,17 +155,17 @@ postEmailR = do
 getLoginR :: NoPasswordAuth m => AuthHandler m TypedContent
 getLoginR = do
     paramName <- tokenParamName
-    loginParam <- lookupGetParam paramName  
+    loginParam <- lookupGetParam paramName
     emailTimeout <- noPasswordEmailTimeout <$> settings
-    case (unpackTokenParam loginParam) of
+    case unpackTokenParam loginParam of
         Nothing -> permissionDenied "Missing login token"
         Just (tid, loginToken, currTime) -> do
             mEmailHash <- getEmailAndHashByTokenId tid
             case mEmailHash of
                 Nothing -> permissionDenied "Invalid login token"
                 Just (email, hash, authId) -> do
-                    actualCurrTime <- liftIO getCurrentTime 
-                    if (verifyToken hash loginToken (convertTime currTime) actualCurrTime emailTimeout)
+                    actualCurrTime <- liftIO getCurrentTime
+                    if verifyToken hash loginToken (convertTime currTime) actualCurrTime emailTimeout
                         then do
                             updateLoginHashForUser authId Nothing tid
                             setCredsRedirect (Creds pluginName email [])
@@ -178,23 +175,23 @@ getLoginR = do
 unpackTokenParam :: Maybe Text -> Maybe (TokenId, Token, CurrentTime)
 unpackTokenParam param = do
     p <- param
-    case (splitOn ":" p) of
-        (tid:tkn:currTime:[]) -> Just (tid, tkn, currTime)
+    case splitOn ":" p of
+        [tid,tkn,currTime] -> Just (tid, tkn, currTime)
         _ -> Nothing
 
 
 genToken :: Int -> IO (Hash, Token, CurrentTime)
-genToken strength = do    
-    currentTime <- decodeUtf8 . urlEncode True . E.encode . E.pack . formatISO8601Millis <$> getCurrentTime 
+genToken strength = do
+    currentTime <- decodeUtf8 . urlEncode True . E.encode . E.pack . formatISO8601Millis <$> getCurrentTime
     tokenSalt <- genSaltIO
     let token = exportSalt tokenSalt
     hash <- makePassword token strength
     return (decodeUtf8 hash, decodeUtf8 (urlEncode True token), currentTime)
 
-convertTime :: CurrentTime -> UTCTime    
-convertTime str = 
+convertTime :: CurrentTime -> UTCTime
+convertTime str =
     let minDate = UTCTime (fromGregorian 1900 1 1) (secondsToDiffTime 0)
-        convert = maybe (minDate) id . parseISO8601 . E.unpack
+        convert = fromMaybe minDate . parseISO8601 . E.unpack
         decoded = either (const minDate) convert . E.decode . urlDecode False . encodeUtf8 $ str
     in decoded
 
@@ -215,7 +212,7 @@ genUrl token tid currTime = do
     render <- getUrlRender
     paramName <- tokenParamName
     let query = "?" <> paramName <> "=" <> tid <> ":" <> token <> ":" <> currTime
-    return $ (render $ tm loginPostR) <> query
+    return $ render (tm loginPostR) <> query
 
 
 class YesodAuthPersist master => NoPasswordAuth master where
@@ -256,7 +253,7 @@ class YesodAuthPersist master => NoPasswordAuth master where
     -- /It is recommended that the/ 'TokenId' /storage be enforced as unique/.
     -- For this reason, the token is not passed as a maybe, as some storage
     -- backends treat `NULL` values as the same.
-    updateLoginHashForUser :: (AuthId master) -> Maybe Hash -> TokenId -> AuthHandler master ()
+    updateLoginHashForUser :: AuthId master -> Maybe Hash -> TokenId -> AuthHandler master ()
 
     -- | Create a new user with an email address and hash.
     newUserWithLoginHash :: Email -> Hash -> TokenId -> AuthHandler master ()
@@ -273,13 +270,11 @@ class YesodAuthPersist master => NoPasswordAuth master where
 
     settings :: AuthHandler master NoPasswordSettings
 
-    {-
-        MINIMAL loginRoute
+    {-# MINIMAL loginRoute
               , emailSentRoute
               , sendLoginEmail
               , getUserByEmail
               , getEmailAndHashByTokenId
               , updateLoginHashForUser
               , newUserWithLoginHash
-              , settings
-    -}
+              , settings #-}

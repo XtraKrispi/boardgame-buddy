@@ -24,6 +24,5 @@ loginForm extra = do
 
 getUserLoginR :: Handler Html
 getUserLoginR = do
-  ((_, widget), enctype) <- runFormPost loginForm    
-  authLayout $
-    $(widgetFile "login/login")
+  ((_, widget), enctype) <- runFormPost loginForm
+  authLayout $(widgetFile "login/login")

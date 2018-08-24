@@ -9,6 +9,4 @@ module Handler.Email where
 import Import
 
 getEmailSentR :: Handler Html
-getEmailSentR = do
-  authLayout $
-    $(widgetFile "email/email")
+getEmailSentR = authLayout $(widgetFile "email/email")

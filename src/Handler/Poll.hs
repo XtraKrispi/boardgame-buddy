@@ -15,7 +15,7 @@ import qualified Text.Blaze.Html as B
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as H
 import Utils.GfyCatStyleUrls
-import Control.Monad.Random hiding (forM_)
+import Control.Monad.Random
 import Db.Polls
 
 data MessageType = MessageSuccess | MessageInfo | MessageWarning | MessageError

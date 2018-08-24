@@ -1,6 +1,4 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -20,8 +18,7 @@ insertPoll
   -> DB (Key Poll, [Key PollAvailableDate], Key PollUser)
 insertPoll poll' days userId = do
   pollKey     <- insert poll'
-  pollDayKeys <- forM days $ \day -> do
-    insert $ PollAvailableDate day pollKey
+  pollDayKeys <- forM days $ \day -> insert $ PollAvailableDate day pollKey
   pollUserKey <- insert $ PollUser userId pollKey
   return (pollKey, pollDayKeys, pollUserKey)
 
@@ -38,5 +35,5 @@ getPollForm friendlyUrl =
             , pollFormEffectiveDate  = pollStartDate
             , pollFormExpiryDate     = pollExpiryDate
             , pollFormApplicableDays = applicableDays
-            }
-        )
+            })
+

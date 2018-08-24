@@ -30,11 +30,11 @@ instance Default UrlGenerationConfig where
 
 generate :: MonadRandom m => UrlGenerationConfig -> m Text
 generate UrlGenerationConfig {..} = do
-  adjectives' <- take (_urlGenerationNumberOfAdjectives) <$> shuffleM adjectives
+  adjectives' <- take _urlGenerationNumberOfAdjectives <$> shuffleM adjectives
   animals'    <- take 1 <$> shuffleM animals
   return
     .  Data.Text.concat
-    .  Data.List.intersperse (_urlGenerationSeparator)
+    .  Data.List.intersperse _urlGenerationSeparator
     .  fmap convert
     $  adjectives'
     <> animals'
