@@ -9,7 +9,7 @@ import Import
 import qualified Data.Text as T
 
 getActivePolls :: DB [Entity Poll]
-getActivePolls = selectList [ PollExpiryDate ==. Nothing ] [ Asc PollStartDate]
+getActivePolls = selectList [ PollExpiryDate ==. Nothing, PollIsDeleted ==. False ] [ Asc PollStartDate]
 
 insertPoll
   :: Poll
@@ -37,3 +37,10 @@ getPollForm friendlyUrl =
             , pollFormApplicableDays = applicableDays
             })
 
+deletePoll :: T.Text -> DB ()
+deletePoll friendlyUrl = do
+    mPoll <- getBy $ UniquePollUrl friendlyUrl
+    case mPoll of
+      Just (Entity pollId poll) ->
+        update pollId [PollIsDeleted =. True]
+      Nothing -> return ()

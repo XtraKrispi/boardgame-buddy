@@ -164,6 +164,7 @@ instance Yesod App where
     isAuthorized (ViewPollR _) _ = isLoggedIn
     isAuthorized GameNightsR _ = isLoggedIn
     isAuthorized UserPreferencesR _ = isLoggedIn
+    isAuthorized (DeletePollR _) _ = isLoggedIn
     isAuthorized (AuthR _) _ = return Authorized
     isAuthorized (StaticR _) _ = return Authorized
     isAuthorized FaviconR _ = return Authorized

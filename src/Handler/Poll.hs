@@ -30,16 +30,18 @@ convertToPoll userId PollForm {..} = do
   pollExpiryDate      = pollFormExpiryDate
   pollClosedDate      = Nothing
   pollCreatedByUserId = userId
+  pollIsDeleted       = False
 
 applicableDaysId :: Text
 applicableDaysId = "applicableDays"
 
 isActive :: Day -> Poll -> Bool
-isActive currentDate (Poll _ startDate Nothing Nothing _ _) =
+isActive currentDate (Poll _ startDate Nothing Nothing _ _ False) =
   currentDate >= startDate
-isActive _ (Poll _ _ _ (Just _) _ _) = False
-isActive currentDate (Poll _ startDate (Just endDate) Nothing _ _) =
+isActive _ (Poll _ _ _ (Just _) _ _ _) = False
+isActive currentDate (Poll _ startDate (Just endDate) Nothing _ _ False) =
   currentDate >= startDate && currentDate <= endDate
+isActive _ (Poll _ _ _ _ _ _ True) = False
 
 convertToDays :: Text -> [Day]
 convertToDays = fmap (read . T.unpack) . T.splitOn ","
@@ -138,8 +140,6 @@ postCreatePollR = do
         Just userId -> do
           (poll', days) <- liftIO . convertToPoll userId $ formData
           _             <- runDB $ insertPoll poll' days userId
-          setMessage $ convertMessage
-            (Message "The poll was created successfully!" MessageSuccess)
           redirect $ EditPollR $ pollFriendlyUrl poll'
     FormFailure _ ->
       setMessage $ convertMessage (Message "This is a test" MessageError)
@@ -169,3 +169,8 @@ getViewPollR friendlyUrl = do
     Just (Entity _ Poll {..}) -> defaultLayout $ do
       setTitle $ H.text $ "Boardgame Buddy | " <> pollTitle
       $(widgetFile "polls/viewPoll")
+
+getDeletePollR :: T.Text -> Handler Html
+getDeletePollR friendlyUrl = do
+  runDB $ deletePoll friendlyUrl
+  redirect PollsR
