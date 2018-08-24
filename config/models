@@ -19,6 +19,7 @@ Poll json
     closedDate Day Maybe
     friendlyUrl Text
     createdByUserId UserId
+    isDeleted Bool
     UniquePollUrl friendlyUrl
     deriving Eq
     deriving Show
