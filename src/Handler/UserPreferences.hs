@@ -71,7 +71,6 @@ postUserPreferencesR = do
           (Message "There was a problem with your request. Please try again."
                    MessageError
           )
-    --_ -> setMessage $ convertMessage (Message "This is a test" MessageInfo)
       mmsg <- getMessage
       defaultLayout $ do
         setTitle "Boardgame Buddy | User Preferences"
