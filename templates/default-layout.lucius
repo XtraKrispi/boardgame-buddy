@@ -1,8 +1,11 @@
+html {
+  overflow: auto;
+}
+
 .notification-message {
   margin: 20px;
 }
 
 body {
-  padding-top: 3.25rem;  
-  background: #F2F6FA;
+  padding-top: 3.25rem;
 }
