@@ -54,8 +54,8 @@ applicableDaysField =
   customErrorMessage "Must pick at least one day!"
     $ convertField convertToDays convertFromDays hiddenField
 
-pollForm :: Form PollForm
-pollForm extra = do
+pollForm :: Maybe PollForm -> Form PollForm
+pollForm mForm extra = do
   let backRoute      = PollsR
   let calendarWidget = Cal.mkWidget applicableDaysId
   currentDay <- liftIO $ utctDay <$> getCurrentTime
@@ -83,16 +83,16 @@ pollForm extra = do
         , fsAttrs   = []
         }
 
-  (titleRes, titleView) <- mreq textField bulmaControlFieldSettings Nothing
+  (titleRes, titleView) <- mreq textField bulmaControlFieldSettings (pollFormTitle <$> mForm)
   (effectiveDateRes, effectiveDateView) <- mreq dayField
                                                 bulmaDatePickerFieldSettings
-                                                (Just currentDay)
+                                                (Just $ maybe currentDay pollFormEffectiveDate mForm)
   (expiryDateRes, expiryDateView) <- mopt dayField
                                           bulmaDatePickerFieldSettings
-                                          Nothing
+                                          (pollFormExpiryDate <$> mForm)
   (applicableDaysRes, applicableDaysView) <- mreq applicableDaysField
                                                   applicableDaysFieldSettings
-                                                  Nothing
+                                                  (pollFormApplicableDays <$> mForm)
   let pollFormRes =
         PollForm
           <$> titleRes
@@ -123,14 +123,15 @@ getPollsR = do
 getCreatePollR :: Handler Html
 getCreatePollR = do
   mmsg                   <- getMessage
-  ((_, widget), enctype) <- runFormPost pollForm
+  ((_, widget), enctype) <- runFormPost (pollForm Nothing)
   defaultLayout $ do
     setTitle "Boardgame Buddy | New Poll"
-    $(widgetFile "polls/createPoll")
+    let pageTitle = "Create Poll" :: T.Text
+    $(widgetFile "polls/editPoll")
 
 postCreatePollR :: Handler Html
 postCreatePollR = do
-  ((res, widget), enctype) <- runFormPost pollForm
+  ((res, widget), enctype) <- runFormPost (pollForm Nothing)
   case res of
     FormSuccess formData -> do
       mUserId <- maybeAuthId
@@ -140,26 +141,50 @@ postCreatePollR = do
         Just userId -> do
           (poll', days) <- liftIO . convertToPoll userId $ formData
           _             <- runDB $ insertPoll poll' days userId
-          redirect $ EditPollR $ pollFriendlyUrl poll'
+          redirect $ ViewPollR $ pollFriendlyUrl poll'
     FormFailure _ ->
       setMessage $ convertMessage (Message "This is a test" MessageError)
     _ -> setMessage $ convertMessage (Message "This is a test" MessageInfo)
   mmsg <- getMessage
   defaultLayout $ do
     setTitle "Boardgame Buddy | New Poll"
-    $(widgetFile "polls/createPoll")
+    let pageTitle = "Create Poll" :: T.Text
+    $(widgetFile "polls/editPoll")
 
 getEditPollR :: T.Text -> Handler Html
 getEditPollR friendlyUrl = do
   mPollForm <- runDB $ getPollForm friendlyUrl
   case mPollForm of
     Nothing -> notFound
-    Just PollForm {..} ->
-      defaultLayout
-        $  setTitle
-        .  H.text
-        $  "Boardgame Buddy | Edit "
-        <> pollFormTitle
+    Just form -> do
+      mmsg                   <- getMessage
+      ((_, widget), enctype) <- runFormPost (pollForm (Just form))
+      defaultLayout $ do
+        setTitle "Boardgame Buddy | Edit Poll"
+        let pageTitle = "Edit Poll" :: T.Text
+        $(widgetFile "polls/editPoll")
+
+postEditPollR :: Handler Html
+postEditPollR = do
+  ((res, widget), enctype) <- runFormPost (pollForm Nothing)
+  case res of
+    FormSuccess formData -> do
+      mUserId <- maybeAuthId
+      case mUserId of
+        Nothing ->
+          setMessage $ convertMessage (Message "This is a test" MessageError)
+        Just userId -> do
+          (poll', days) <- liftIO . convertToPoll userId $ formData
+          _             <- runDB $ insertPoll poll' days userId
+          redirect $ ViewPollR $ pollFriendlyUrl poll'
+    FormFailure _ ->
+      setMessage $ convertMessage (Message "This is a test" MessageError)
+    _ -> setMessage $ convertMessage (Message "This is a test" MessageInfo)
+  mmsg <- getMessage
+  defaultLayout $ do
+    setTitle "Boardgame Buddy | Edit Poll"
+    let pageTitle = "Edit Poll" :: T.Text
+    $(widgetFile "polls/editPoll")
 
 getViewPollR :: T.Text -> Handler Html
 getViewPollR friendlyUrl = do

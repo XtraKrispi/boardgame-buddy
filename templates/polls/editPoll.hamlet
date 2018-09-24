@@ -2,7 +2,7 @@
     <div .hero-body>
       <div .container>
           <h1 .title>
-            Create Poll
+            #{pageTitle}
 
 $maybe msg <- mmsg
   #{msg}
