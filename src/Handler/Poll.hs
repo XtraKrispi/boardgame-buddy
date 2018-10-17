@@ -19,11 +19,9 @@ import Control.Monad.Random
 import Db.Polls
 import Utils.Message
 
-
-convertToPoll :: MonadRandom m => UserId -> PollForm -> m (Poll, [Day])
-convertToPoll userId PollForm {..} = do
-  pollFriendlyUrl <- generate (UrlGenerationConfig "-" Lowercase 2)
-  return (Poll {..}, pollFormApplicableDays)
+convertToPoll :: UserId -> T.Text -> PollForm -> (Poll, [Day])
+convertToPoll userId pollFriendlyUrl PollForm {..} =
+  (Poll {..}, pollFormApplicableDays)
  where
   pollTitle           = pollFormTitle
   pollStartDate       = pollFormEffectiveDate
@@ -139,7 +137,8 @@ postCreatePollR = do
         Nothing ->
           setMessage $ convertMessage (Message "This is a test" MessageError)
         Just userId -> do
-          (poll', days) <- liftIO . convertToPoll userId $ formData
+          friendlyUrl <- liftIO $ generate (UrlGenerationConfig "-" Lowercase 2)
+          let (poll', days) = convertToPoll userId friendlyUrl $ formData
           _             <- runDB $ insertPoll poll' days userId
           redirect $ ViewPollR $ pollFriendlyUrl poll'
     FormFailure _ ->
@@ -164,8 +163,8 @@ getEditPollR friendlyUrl = do
         let pageTitle = "Edit Poll" :: T.Text
         $(widgetFile "polls/editPoll")
 
-postEditPollR :: Handler Html
-postEditPollR = do
+postEditPollR :: T.Text -> Handler Html
+postEditPollR friendlyUrl = do
   ((res, widget), enctype) <- runFormPost (pollForm Nothing)
   case res of
     FormSuccess formData -> do
@@ -174,8 +173,8 @@ postEditPollR = do
         Nothing ->
           setMessage $ convertMessage (Message "This is a test" MessageError)
         Just userId -> do
-          (poll', days) <- liftIO . convertToPoll userId $ formData
-          _             <- runDB $ insertPoll poll' days userId
+          let (poll', days) = convertToPoll userId friendlyUrl $ formData
+          _                 <- runDB $ updatePoll poll' days
           redirect $ ViewPollR $ pollFriendlyUrl poll'
     FormFailure _ ->
       setMessage $ convertMessage (Message "This is a test" MessageError)

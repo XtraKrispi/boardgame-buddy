@@ -12,7 +12,7 @@
 
 /new/poll CreatePollR GET POST
 /polls PollsR GET
-/polls/#Text/edit EditPollR GET
+/polls/#Text/edit EditPollR GET POST
 /poll/#Text ViewPollR GET
 
 /polls/#Text/delete DeletePollR GET

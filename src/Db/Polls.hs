@@ -25,13 +25,16 @@ insertPoll poll' days userId = do
 updatePoll
   :: Poll
   -> [Day]
-  -> UserId
-  -> DB (Key Poll, [Key PollAvailableDate], Key PollUser)
-updatePoll poll' days userId = do
-  pollKey     <- insert poll'
-  pollDayKeys <- forM days $ \day -> insert $ PollAvailableDate day pollKey
-  pollUserKey <- insert $ PollUser userId pollKey
-  return (pollKey, pollDayKeys, pollUserKey)
+  -> DB (Either String [Key PollAvailableDate])
+updatePoll poll' days = do
+  mEntity <- getBy $ UniquePollUrl (pollFriendlyUrl poll')
+  case mEntity of
+    Just (Entity pollKey _) -> do
+      replace pollKey poll'
+      deleteWhere [PollAvailableDatePollId ==. pollKey]
+      dayKeys <- forM days $ \day -> insert $ PollAvailableDate day pollKey
+      return $ Right dayKeys
+    Nothing -> return (Left "Poll was not in the database")
 
 getPollForm :: T.Text -> DB (Maybe PollForm)
 getPollForm friendlyUrl =
