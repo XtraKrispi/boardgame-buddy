@@ -146,7 +146,7 @@ instance Yesod App where
         "config/client_session_key.aes"
 
     authRoute :: App -> Maybe (Route App)
-    authRoute _ = Just $ UserLoginR
+    authRoute _ = Just UserLoginR
 
     isAuthorized :: Route App -> Bool -> Handler AuthResult
     isAuthorized HomeR _ = isLoggedIn

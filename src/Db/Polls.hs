@@ -22,25 +22,42 @@ insertPoll poll' days userId = do
   pollUserKey <- insert $ PollUser userId pollKey
   return (pollKey, pollDayKeys, pollUserKey)
 
+updatePoll
+  :: Poll
+  -> [Day]
+  -> DB (Either String [Key PollAvailableDate])
+updatePoll poll' days = do
+  mEntity <- getBy $ UniquePollUrl (pollFriendlyUrl poll')
+  case mEntity of
+    Just (Entity pollKey _) -> do
+      replace pollKey poll'
+      deleteWhere [PollAvailableDatePollId ==. pollKey]
+      dayKeys <- forM days $ \day -> insert $ PollAvailableDate day pollKey
+      return $ Right dayKeys
+    Nothing -> return (Left "Poll was not in the database")
+
 getPollForm :: T.Text -> DB (Maybe PollForm)
 getPollForm friendlyUrl =
   (getBy $ UniquePollUrl friendlyUrl)
-    >>= (maybe (return Nothing) $ \(Entity pollId Poll {..}) -> do
-          applicableDays <-
-            fmap (pollAvailableDateDate . entityVal) <$> selectList
-              [PollAvailableDatePollId ==. pollId]
-              [Asc PollAvailableDateDate]
-          return $ Just $ PollForm
-            { pollFormTitle          = pollTitle
-            , pollFormEffectiveDate  = pollStartDate
-            , pollFormExpiryDate     = pollExpiryDate
-            , pollFormApplicableDays = applicableDays
-            })
+    >>= (maybe (return Nothing) $ \(Entity pollId Poll {..}) ->
+          if pollIsDeleted then
+            return Nothing
+          else do
+            applicableDays <-
+              fmap (pollAvailableDateDate . entityVal) <$> selectList
+                [PollAvailableDatePollId ==. pollId]
+                [Asc PollAvailableDateDate]
+            return $ Just $ PollForm
+              { pollFormTitle          = pollTitle
+              , pollFormEffectiveDate  = pollStartDate
+              , pollFormExpiryDate     = pollExpiryDate
+              , pollFormApplicableDays = applicableDays
+              })
 
 deletePoll :: T.Text -> DB ()
 deletePoll friendlyUrl = do
     mPoll <- getBy $ UniquePollUrl friendlyUrl
     case mPoll of
-      Just (Entity pollId poll) ->
+      Just (Entity pollId _) ->
         update pollId [PollIsDeleted =. True]
       Nothing -> return ()

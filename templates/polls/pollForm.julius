@@ -3,7 +3,8 @@
   for (element in dateElements) {
     pickmeup(dateElements[element],{
   	  format	: 'Y-m-d',
-      min: new Date()
+      min: new Date(),
+      default_date: false
     });
   }
 })();
