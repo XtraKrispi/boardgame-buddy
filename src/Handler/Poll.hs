@@ -174,11 +174,7 @@ postEditPollR friendlyUrl = do
           setMessage $ convertMessage (Message "This is a test" MessageError)
         Just userId -> do
           let (poll', days) = convertToPoll userId friendlyUrl $ formData
-<<<<<<< HEAD
-          _                 <- runDB $ updatePoll poll' days
-=======
           _             <- runDB $ updatePoll poll' days
->>>>>>> 23cd31b305c067aa316fd6ac7bb90e8a968a6f70
           redirect $ ViewPollR $ pollFriendlyUrl poll'
     FormFailure _ ->
       setMessage $ convertMessage (Message "This is a test" MessageError)
