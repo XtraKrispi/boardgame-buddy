@@ -241,8 +241,8 @@ instance Yesod App where
                   -- you to use normal widget features in default-layout.
                   pc <- widgetToPageContent $ do
                     addScripts
-                    addScript $ StaticR js_pickmeup_js
                     addStylesheet $ StaticR $ StaticRoute ["css", "styles.css"] []
+
                     $(widgetFile "default-layout")
                   withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 
@@ -326,7 +326,6 @@ instance YesodAuth App where
 
         pc <- widgetToPageContent $ do
           addScripts
-          addScript $ StaticR js_pickmeup_js
           addStylesheet $ StaticR $ StaticRoute ["css", "styles.css"] []
           $(widgetFile "auth-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")

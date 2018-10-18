@@ -15,28 +15,15 @@
     return div
   }
 
-  const updateDayElement = (month, selectedDates, date, elem) => {
-    elem.innerText = date.getDate()
-
-    if (isSelected(selectedDates, date)) {
-      console.log("selected")
-      elem.classList.add("selected")
-    } else {
-      elem.classList.remove("selected")
-    }
-
-    if (date.getMonth() != month){
-      elem.classList.add("not-in-month")
-    } else {
-      elem.classList.remove("not-in-month")
-    }
-  }
+  const dateSelectedHandler = R.curry((elem, date, _) => {
+    elem.dispatchEvent(new CustomEvent("dateSelected", { detail: {date: date}, bubbles: true}))
+  })
 
   const createDayElement = R.curry((month, selectedDates, date) => {
     const div = document.createElement("div")
     const textNode = document.createTextNode(date.getDate())
     div.appendChild(textNode)
-
+    div.setAttribute("data-date", dateFns.format(date))
     div.classList.add("date")
 
     if (isSelected(selectedDates, date)) {
@@ -51,17 +38,15 @@
       div.classList.remove("not-in-month")
     }
 
-    div.addEventListener("click", (e) => {
-    div.dispatchEvent(new CustomEvent("dateSelected", { detail: {date: date}
-  , bubbles: true}))
-    })
+    div.addEventListener("click", dateSelectedHandler(div, date))
 
     return div
   })
 
   const isSelected = R.curry((selectedDates, date) => R.any(d => dateFns.isEqual(d, date), selectedDates || []))
 
-  const getCalendar = (year, month, selectedDates) => {
+  const getCalendar = (year, month, selectedDates, leftControl, rightControl) => {
+    const today = new Date();
     const firstDay = new Date(year, month, 1)
     const daysToGoBack = firstDay.getDay() % 7
     const firstDateForCalendar = dateFns.addDays(firstDay, -daysToGoBack)
@@ -73,10 +58,58 @@
     const calendar = document.createElement("div")
     calendar.classList.add("calendar")
     const container = document.createElement("div")
-    const titleElement = document.createElement("div")
 
-    titleElement.appendChild(document.createTextNode(dateFns.format(firstDay, "MMM YYYY")))
-    calendar.appendChild(titleElement)
+
+    const headerElement = createHeaderElement("")
+    const title = document.createElement("span")
+    title.innerText = dateFns.format(firstDay, "MMM YYYY")
+
+    title.classList.add("calendar-title")
+
+    headerElement.appendChild(title)
+
+    if (leftControl) {
+      const left = document.createElement("div")
+      left.classList.add("control")
+      left.classList.add("left-control")
+
+      if (year == dateFns.getYear(today) && month == dateFns.getMonth(today)){
+        left.classList.add("hidden")
+      }
+
+      const icon = document.createElement("i")
+      icon.classList.add("fas")
+      icon.classList.add("fa-caret-left")
+
+      left.appendChild(icon)
+
+      left.addEventListener("click", (e) => {
+        left.dispatchEvent(new CustomEvent("previousMonth", { detail: { year: year, month: month}
+        , bubbles: true}))
+      })
+
+      headerElement.appendChild(left)
+    }
+
+    if (rightControl) {
+      const right = document.createElement("div")
+      right.classList.add("control")
+      right.classList.add("right-control")
+
+      const icon = document.createElement("i")
+      icon.classList.add("fas")
+      icon.classList.add("fa-caret-right")
+
+      right.appendChild(icon)
+      right.addEventListener("click", (e) => {
+        right.dispatchEvent(new CustomEvent("nextMonth", { detail: { year: year, month: month}
+        , bubbles: true}))
+      })
+
+      headerElement.appendChild(right)
+    }
+
+    calendar.appendChild(headerElement)
 
     container.appendChild(createHeaderElement("S"))
     container.appendChild(createHeaderElement("M"))
@@ -86,16 +119,18 @@
     container.appendChild(createHeaderElement("F"))
     container.appendChild(createHeaderElement("S"))
 
-      for (day of days){
-        container.appendChild(day)
-      }
+    for (day of days){
+      container.appendChild(day)
+    }
 
-      container.classList.add("calendar-container")
+    container.classList.add("calendar-container")
     calendar.appendChild(container)
-      return calendar
+
+    return calendar
   }
 
   const updateCalendar = (elem, year, month, selectedDates) => {
+    const today = new Date();
     const firstDay = new Date(year, month, 1)
     const daysToGoBack = firstDay.getDay() % 7
     const firstDateForCalendar = dateFns.addDays(firstDay, -daysToGoBack)
@@ -106,10 +141,21 @@
      .map(i => dateFns.addDays(firstDateForCalendar, i))
     const days = R.zip(days_, dayElements)
 
-    for ([date, day] of days){
-      updateDayElement(month, selectedDates, date, day)
+    for ([date, dayElem] of days){
+      const newDayElement = createDayElement(month, selectedDates, date)
+      dayElem.parentNode.replaceChild(newDayElement, dayElem);
     }
 
+    const header = elem.querySelector(".calendar-title")
+    header.innerText = dateFns.format(firstDay, "MMM YYYY")
+
+    const leftControl = elem.querySelector(".left-control")
+
+    if (leftControl){
+      if (year != dateFns.getYear(today) && month != dateFns.getMonth(today)){
+        left.classList.remove("hidden")
+      }
+    }
   }
 
   const teardown = elem => {
@@ -119,27 +165,48 @@
   }
 
   const mainElement = document.querySelector(".calendar-main")
-  const today = new Date()
-  const nextMonth = dateFns.addMonths(today, 1)
-  const nextNextMonth = dateFns.addMonths(today, 2)
-  const calendar1 = getCalendar(dateFns.getYear(today), dateFns.getMonth(today), selectedDates)
+  let firstMonth = new Date()
+  let nextMonth = dateFns.addMonths(firstMonth, 1)
+  let nextNextMonth = dateFns.addMonths(firstMonth, 2)
+  const calendar1 = getCalendar(dateFns.getYear(firstMonth), dateFns.getMonth(firstMonth), selectedDates, true)
   const calendar2 = getCalendar(dateFns.getYear(nextMonth), dateFns.getMonth(nextMonth), selectedDates)
-  const calendar3 = getCalendar(dateFns.getYear(nextNextMonth), dateFns.getMonth(nextNextMonth), selectedDates)
+  const calendar3 = getCalendar(dateFns.getYear(nextNextMonth), dateFns.getMonth(nextNextMonth), selectedDates, false, true)
 
   mainElement.appendChild(calendar1)
   mainElement.appendChild(calendar2)
   mainElement.appendChild(calendar3)
 
-  document.addEventListener("dateSelected", (e) => {
+  document.addEventListener("dateSelected", e => {
     if (R.any(d => dateFns.isEqual(d, e.detail.date), selectedDates)){
       selectedDates = R.filter(d => !dateFns.isEqual(d, e.detail.date), selectedDates)
     } else {
       selectedDates = R.append(e.detail.date, selectedDates)
     }
-    updateCalendar(calendar1, dateFns.getYear(today), dateFns.getMonth(today), selectedDates)
+    updateCalendar(calendar1, dateFns.getYear(firstMonth), dateFns.getMonth(firstMonth), selectedDates)
     updateCalendar(calendar2, dateFns.getYear(nextMonth), dateFns.getMonth(nextMonth), selectedDates)
     updateCalendar(calendar3, dateFns.getYear(nextNextMonth), dateFns.getMonth(nextNextMonth), selectedDates)
 
     field.innerText = R.join(",", R.map(dateFns.format, selectedDates))
   })
+
+  document.addEventListener("nextMonth", e => {
+    firstMonth = dateFns.addMonths(firstMonth, 3)
+    nextMonth = dateFns.addMonths(firstMonth, 1)
+    nextNextMonth = dateFns.addMonths(firstMonth, 2)
+
+    updateCalendar(calendar1, dateFns.getYear(firstMonth), dateFns.getMonth(firstMonth), selectedDates)
+    updateCalendar(calendar2, dateFns.getYear(nextMonth), dateFns.getMonth(nextMonth), selectedDates)
+    updateCalendar(calendar3, dateFns.getYear(nextNextMonth), dateFns.getMonth(nextNextMonth), selectedDates)
+  })
+
+  document.addEventListener("previousMonth", e => {
+    firstMonth = dateFns.addMonths(firstMonth, -3)
+    nextMonth = dateFns.addMonths(firstMonth, 1)
+    nextNextMonth = dateFns.addMonths(firstMonth, 2)
+
+    updateCalendar(calendar1, dateFns.getYear(firstMonth), dateFns.getMonth(firstMonth), selectedDates)
+    updateCalendar(calendar2, dateFns.getYear(nextMonth), dateFns.getMonth(nextMonth), selectedDates)
+    updateCalendar(calendar3, dateFns.getYear(nextNextMonth), dateFns.getMonth(nextNextMonth), selectedDates)
+  })
+
 })();
