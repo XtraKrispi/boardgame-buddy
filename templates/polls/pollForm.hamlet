@@ -12,13 +12,13 @@
   <label .label>Expiry Date
   <div .control>
       ^{fvInput expiryDateView}
-    <!-- <input .input type="date" name="pollExpiryDate"> -->    
+    <!-- <input .input type="date" name="pollExpiryDate"> -->
 <div .columns>
-  <div .column.is-half>
+  <div .column.is-full>
     <label .label>Pick your dates:
-      ^{calendarWidget} 
+    ^{calendarWidget}
 <div .field.is-grouped>
   <div .control>
-    <button .button.is-link>Submit</button>         
+    <button .button.is-link>Submit</button>
   <div .control>
     <a href="@{backRoute}" .button.is-text>Cancel</a>

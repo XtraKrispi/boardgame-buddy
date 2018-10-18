@@ -9,7 +9,9 @@ import Import
 import qualified Data.Text as T
 
 getActivePolls :: DB [Entity Poll]
-getActivePolls = selectList [ PollExpiryDate ==. Nothing, PollIsDeleted ==. False ] [ Asc PollStartDate]
+getActivePolls = selectList
+  [PollExpiryDate ==. Nothing, PollIsDeleted ==. False]
+  [Asc PollStartDate]
 
 insertPoll
   :: Poll
@@ -22,42 +24,34 @@ insertPoll poll' days userId = do
   pollUserKey <- insert $ PollUser userId pollKey
   return (pollKey, pollDayKeys, pollUserKey)
 
-updatePoll
-  :: Poll
-  -> [Day]
-  -> DB (Either String [Key PollAvailableDate])
-updatePoll poll' days = do
-  mEntity <- getBy $ UniquePollUrl (pollFriendlyUrl poll')
-  case mEntity of
-    Just (Entity pollKey _) -> do
-      replace pollKey poll'
-      deleteWhere [PollAvailableDatePollId ==. pollKey]
-      dayKeys <- forM days $ \day -> insert $ PollAvailableDate day pollKey
-      return $ Right dayKeys
-    Nothing -> return (Left "Poll was not in the database")
+updatePoll :: Poll -> [Day] -> DB (Either String [Key PollAvailableDate])
+updatePoll poll' days = getBy (UniquePollUrl (pollFriendlyUrl poll')) >>= maybe
+  (return (Left "Poll was not in the database"))
+  (\(Entity pollKey _) -> do
+    replace pollKey poll'
+    deleteWhere [PollAvailableDatePollId ==. pollKey]
+    dayKeys <- forM days $ \day -> insert $ PollAvailableDate day pollKey
+    return $ Right dayKeys
+  )
 
 getPollForm :: T.Text -> DB (Maybe PollForm)
-getPollForm friendlyUrl =
-  (getBy $ UniquePollUrl friendlyUrl)
-    >>= (maybe (return Nothing) $ \(Entity pollId Poll {..}) ->
-          if pollIsDeleted then
-            return Nothing
-          else do
-            applicableDays <-
-              fmap (pollAvailableDateDate . entityVal) <$> selectList
-                [PollAvailableDatePollId ==. pollId]
-                [Asc PollAvailableDateDate]
-            return $ Just $ PollForm
-              { pollFormTitle          = pollTitle
-              , pollFormEffectiveDate  = pollStartDate
-              , pollFormExpiryDate     = pollExpiryDate
-              , pollFormApplicableDays = applicableDays
-              })
+getPollForm friendlyUrl = getBy (UniquePollUrl friendlyUrl) >>= maybe
+  (return Nothing)
+  (\(Entity pollId Poll {..}) -> if pollIsDeleted
+    then return Nothing
+    else do
+      applicableDays <- fmap (pollAvailableDateDate . entityVal) <$> selectList
+        [PollAvailableDatePollId ==. pollId]
+        [Asc PollAvailableDateDate]
+      return $ Just $ PollForm
+        { pollFormTitle          = pollTitle
+        , pollFormEffectiveDate  = pollStartDate
+        , pollFormExpiryDate     = pollExpiryDate
+        , pollFormApplicableDays = applicableDays
+        }
+  )
 
 deletePoll :: T.Text -> DB ()
-deletePoll friendlyUrl = do
-    mPoll <- getBy $ UniquePollUrl friendlyUrl
-    case mPoll of
-      Just (Entity pollId _) ->
-        update pollId [PollIsDeleted =. True]
-      Nothing -> return ()
+deletePoll friendlyUrl = getBy (UniquePollUrl friendlyUrl) >>= maybe
+  (return ())
+  (\(Entity pollId _) -> update pollId [PollIsDeleted =. True])

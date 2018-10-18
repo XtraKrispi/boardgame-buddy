@@ -1,25 +1,145 @@
 (function () {
-  var fieldId = #{toJSON fieldId};
-  var field = $("#" + fieldId);
-  var vals = R.filter(function(r) { return !!r; }, R.split(",", field.val()));
+  const fieldId = #{toJSON fieldId};
+  const field = document.getElementById(fieldId);
+  const parseSelectedDates =
+    R.compose(R.map(dateFns.parse), R.filter(r => !!r), R.split(","))
+  let selectedDates = parseSelectedDates(field.innerText)
+  const createHeaderElement = text => {
+    const div = document.createElement("div")
+    const textNode = document.createTextNode(text)
 
-  var dateElement = document.querySelector(".date");
-  pickmeup(dateElement,{
-	  format	: 'Y-m-d',
-    mode: "multiple",
-    min: new Date(),
-    calendars: 3,
-    date: vals,
-    default_date: false
-  }).show();
+    div.appendChild(textNode)
 
-  dateElement.addEventListener('pickmeup-hide', function (e) {
-    e.preventDefault(); // Hiding can be canceled if needed
-  });
+    div.classList.add("header")
 
-  dateElement.addEventListener('pickmeup-change', function (e) {
-    // console.log(e.detail.formatted_date); // New date according to current format
-    // console.log(e.detail.date);           // New date as Date object
-    field.val(R.join(",", e.detail.formatted_date));
-  });
+    return div
+  }
+
+  const updateDayElement = (month, selectedDates, date, elem) => {
+    elem.innerText = date.getDate()
+
+    if (isSelected(selectedDates, date)) {
+      console.log("selected")
+      elem.classList.add("selected")
+    } else {
+      elem.classList.remove("selected")
+    }
+
+    if (date.getMonth() != month){
+      elem.classList.add("not-in-month")
+    } else {
+      elem.classList.remove("not-in-month")
+    }
+  }
+
+  const createDayElement = R.curry((month, selectedDates, date) => {
+    const div = document.createElement("div")
+    const textNode = document.createTextNode(date.getDate())
+    div.appendChild(textNode)
+
+    div.classList.add("date")
+
+    if (isSelected(selectedDates, date)) {
+      div.classList.add("selected")
+    } else {
+      div.classList.remove("selected")
+    }
+
+    if (date.getMonth() != month){
+      div.classList.add("not-in-month")
+    } else {
+      div.classList.remove("not-in-month")
+    }
+
+    div.addEventListener("click", (e) => {
+    div.dispatchEvent(new CustomEvent("dateSelected", { detail: {date: date}
+  , bubbles: true}))
+    })
+
+    return div
+  })
+
+  const isSelected = R.curry((selectedDates, date) => R.any(d => dateFns.isEqual(d, date), selectedDates || []))
+
+  const getCalendar = (year, month, selectedDates) => {
+    const firstDay = new Date(year, month, 1)
+    const daysToGoBack = firstDay.getDay() % 7
+    const firstDateForCalendar = dateFns.addDays(firstDay, -daysToGoBack)
+
+    const days = R.range(0, 35)
+     .map(i => dateFns.addDays(firstDateForCalendar, i))
+     .map(createDayElement(month, selectedDates))
+
+    const calendar = document.createElement("div")
+    calendar.classList.add("calendar")
+    const container = document.createElement("div")
+    const titleElement = document.createElement("div")
+
+    titleElement.appendChild(document.createTextNode(dateFns.format(firstDay, "MMM YYYY")))
+    calendar.appendChild(titleElement)
+
+    container.appendChild(createHeaderElement("S"))
+    container.appendChild(createHeaderElement("M"))
+    container.appendChild(createHeaderElement("T"))
+    container.appendChild(createHeaderElement("W"))
+    container.appendChild(createHeaderElement("Th"))
+    container.appendChild(createHeaderElement("F"))
+    container.appendChild(createHeaderElement("S"))
+
+      for (day of days){
+        container.appendChild(day)
+      }
+
+      container.classList.add("calendar-container")
+    calendar.appendChild(container)
+      return calendar
+  }
+
+  const updateCalendar = (elem, year, month, selectedDates) => {
+    const firstDay = new Date(year, month, 1)
+    const daysToGoBack = firstDay.getDay() % 7
+    const firstDateForCalendar = dateFns.addDays(firstDay, -daysToGoBack)
+
+    const dayElements = elem.querySelectorAll(".date")
+
+    const days_ = R.range(0, 35)
+     .map(i => dateFns.addDays(firstDateForCalendar, i))
+    const days = R.zip(days_, dayElements)
+
+    for ([date, day] of days){
+      updateDayElement(month, selectedDates, date, day)
+    }
+
+  }
+
+  const teardown = elem => {
+    while (elem.firstChild) {
+      elem.removeChild(elem.firstChild);
+    }
+  }
+
+  const mainElement = document.querySelector(".calendar-main")
+  const today = new Date()
+  const nextMonth = dateFns.addMonths(today, 1)
+  const nextNextMonth = dateFns.addMonths(today, 2)
+  const calendar1 = getCalendar(dateFns.getYear(today), dateFns.getMonth(today), selectedDates)
+  const calendar2 = getCalendar(dateFns.getYear(nextMonth), dateFns.getMonth(nextMonth), selectedDates)
+  const calendar3 = getCalendar(dateFns.getYear(nextNextMonth), dateFns.getMonth(nextNextMonth), selectedDates)
+
+  mainElement.appendChild(calendar1)
+  mainElement.appendChild(calendar2)
+  mainElement.appendChild(calendar3)
+
+  document.addEventListener("dateSelected", (e) => {
+    if (R.any(d => dateFns.isEqual(d, e.detail.date), selectedDates)){
+      selectedDates = R.filter(d => !dateFns.isEqual(d, e.detail.date), selectedDates)
+    } else {
+      selectedDates = R.append(e.detail.date, selectedDates)
+    }
+    updateCalendar(calendar1, dateFns.getYear(today), dateFns.getMonth(today), selectedDates)
+    updateCalendar(calendar2, dateFns.getYear(nextMonth), dateFns.getMonth(nextMonth), selectedDates)
+    updateCalendar(calendar3, dateFns.getYear(nextNextMonth), dateFns.getMonth(nextNextMonth), selectedDates)
+
+    field.innerText = R.join(",", R.map(dateFns.format, selectedDates))
+  })
 })();
