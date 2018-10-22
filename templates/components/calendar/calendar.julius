@@ -3,7 +3,7 @@
   const field = document.getElementById(fieldId);
   const parseSelectedDates =
     R.compose(R.map(dateFns.parse), R.filter(r => !!r), R.split(","))
-  let selectedDates = parseSelectedDates(field.innerText)
+  let selectedDates = parseSelectedDates(field.value)
   const createHeaderElement = text => {
     const div = document.createElement("div")
     const textNode = document.createTextNode(text)
@@ -186,7 +186,7 @@
     updateCalendar(calendar2, dateFns.getYear(nextMonth), dateFns.getMonth(nextMonth), selectedDates)
     updateCalendar(calendar3, dateFns.getYear(nextNextMonth), dateFns.getMonth(nextNextMonth), selectedDates)
 
-    field.innerText = R.join(",", R.map(dateFns.format, selectedDates))
+    field.value = R.join(",", R.map(d => dateFns.format(d, "YYYY-MM-DD"), selectedDates))
   })
 
   document.addEventListener("nextMonth", e => {
