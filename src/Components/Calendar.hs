@@ -8,4 +8,6 @@ module Components.Calendar where
 import Import
 
 mkWidget :: Text -> Widget
-mkWidget fieldId = $(widgetFile "components/calendar/calendar")
+mkWidget fieldId = do
+  addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/date-fns/1.29.0/date_fns.min.js"
+  $(widgetFile "components/calendar/calendar")

@@ -1,8 +1,76 @@
-.calendar {
-  margin: 0 auto;
-  width: 60%;
-  height: 400px;
-  .date {
-    font-size: 20px;
+.calendar-main {
+  user-select: none;
+  display: flex;
+  justify-content: space-evenly;
+  padding: 0px;
+
+  .calendar {
+    text-align: center;
+    .header {
+      font-weight: bold;
+
+      i {
+        vertical-align: top;
+      }
+
+      .control {
+        &.hidden {
+          visibility: hidden;
+        }
+        font-size: 22px;
+        height: 24px;
+        width: 24px;
+        text-align: center;
+        &:hover {
+          cursor: pointer;
+        }
+      }
+
+      .right-control {
+        float: right;
+      }
+
+      .left-control {
+        float: left;
+      }
+    }
+
+    .calendar-container {
+      margin: 20px;
+
+      display: grid;
+
+      grid-gap: 10px;
+      grid-template-columns: repeat(7, 1fr);
+      grid-auto-rows: 1fr;
+
+      .date {
+        padding: 10px;
+
+        &:hover {
+          cursor: pointer;
+          border-radius: 50%;
+          background-color: #00d1b2;
+        }
+      }
+
+      .selected {
+        border-radius: 50%;
+        padding: 9px;
+        font-weight: bold;
+        background-color: #00d1b2;
+      }
+
+      .not-in-month {
+        color: #aaa;
+      }
+    }
   }
 }
+
+@media only screen and (max-width: 700px) {
+  .calendar-main {
+    flex-flow: column nowrap;
+  }
+}
+
