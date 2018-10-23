@@ -15,6 +15,7 @@ import qualified Text.Blaze.Html5 as H
 import Utils.GfyCatStyleUrls
 import Db.Polls
 import Utils.Message
+import Data.Time.Format
 
 convertToPoll :: UserId -> T.Text -> PollForm -> (Poll, [Day])
 convertToPoll userId pollFriendlyUrl PollForm {..} =
@@ -184,12 +185,13 @@ postEditPollR friendlyUrl = do
 
 getViewPollR :: T.Text -> Handler Html
 getViewPollR friendlyUrl = do
-  mPoll <- runDB $ getBy $ UniquePollUrl friendlyUrl
+  mPoll <- runDB $ getPoll friendlyUrl
   case mPoll of
     Nothing                   -> notFound
-    Just (Entity _ Poll {..}) -> defaultLayout $ do
-      setTitle $ H.text $ "Boardgame Buddy | " <> pollTitle
-      $(widgetFile "polls/viewPoll")
+    Just (Entity _ Poll {..}, pollAvailableDates) ->
+      defaultLayout $ do
+        setTitle $ H.text $ "Boardgame Buddy | " <> pollTitle
+        $(widgetFile "polls/viewPoll")
 
 getDeletePollR :: T.Text -> Handler Html
 getDeletePollR friendlyUrl = do

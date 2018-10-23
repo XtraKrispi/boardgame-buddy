@@ -1,1 +1,11 @@
-<h1>View Poll
+<div .hero.is-primary>
+  <div .hero-body>
+    <div .container>
+        <h1 .title>
+          View Poll - #{pollTitle}
+
+<div .columns>
+<div .column.is-half.is-offset-one-quarter>
+  <ul>
+    $forall (Entity dateKey d) <- pollAvailableDates
+      <li>#{ formatTime defaultTimeLocale (iso8601DateFormat Nothing) (pollAvailableDateDate d)}

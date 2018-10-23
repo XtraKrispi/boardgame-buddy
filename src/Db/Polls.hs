@@ -55,3 +55,10 @@ deletePoll :: T.Text -> DB ()
 deletePoll friendlyUrl = getBy (UniquePollUrl friendlyUrl) >>= maybe
   (return ())
   (\(Entity pollId _) -> update pollId [PollIsDeleted =. True])
+
+getPoll :: T.Text -> DB (Maybe (Entity Poll, [Entity PollAvailableDate]))
+getPoll friendlyUrl =
+  getBy (UniquePollUrl friendlyUrl) >>=
+    maybe (return Nothing) (\p@(Entity pollKey _) -> do
+      availableDates <- selectList [ PollAvailableDatePollId ==. pollKey ] [ Asc PollAvailableDateDate ]
+      return . Just $ (p, availableDates))
