@@ -8,4 +8,4 @@
 <div .column.is-half.is-offset-one-quarter>
   <ul>
     $forall (Entity dateKey d) <- pollAvailableDates
-      <li>#{ formatTime defaultTimeLocale (iso8601DateFormat Nothing) (pollAvailableDateDate d)}
+      <li>#{ formatTime defaultTimeLocale "%A, %B %e, %_Y" (pollAvailableDateDate d)}
