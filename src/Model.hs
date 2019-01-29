@@ -25,4 +25,3 @@ data PollForm = PollForm {
    ,pollFormExpiryDate     :: Maybe Day
    ,pollFormApplicableDays :: [Day]
  } deriving (Show)
-     

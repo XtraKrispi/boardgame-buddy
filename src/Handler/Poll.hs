@@ -136,8 +136,8 @@ postCreatePollR = do
           setMessage $ convertMessage (Message "This is a test" MessageError)
         Just userId -> do
           friendlyUrl <- liftIO $ generate (UrlGenerationConfig "-" Lowercase 2)
-          let (poll', days) = convertToPoll userId friendlyUrl $ formData
-          _             <- runDB $ insertPoll poll' days userId
+          let (poll', days) = convertToPoll userId friendlyUrl formData
+          _             <- runDB $ insertPoll poll' days
           redirect $ ViewPollR $ pollFriendlyUrl poll'
     FormFailure _ ->
       setMessage $ convertMessage (Message "This is a test" MessageError)

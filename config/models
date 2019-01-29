@@ -30,15 +30,8 @@ PollAvailableDate json
     deriving Eq
     deriving Show
 
-PollUser json
-    userId UserId
-    pollId PollId
-    UniquePollUser userId pollId
-    deriving Eq
-    deriving Show
-
 PollResults json
-    pollUserId PollUserId
     pollAvailableDateId PollAvailableDateId
+    userId UserId
     deriving Eq
     deriving Show

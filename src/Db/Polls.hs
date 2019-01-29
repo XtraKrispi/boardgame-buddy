@@ -16,13 +16,11 @@ getActivePolls = selectList
 insertPoll
   :: Poll
   -> [Day]
-  -> UserId
-  -> DB (Key Poll, [Key PollAvailableDate], Key PollUser)
-insertPoll poll' days userId = do
+  -> DB (Key Poll, [Key PollAvailableDate])
+insertPoll poll' days = do
   pollKey     <- insert poll'
   pollDayKeys <- forM days $ \day -> insert $ PollAvailableDate day pollKey
-  pollUserKey <- insert $ PollUser userId pollKey
-  return (pollKey, pollDayKeys, pollUserKey)
+  return (pollKey, pollDayKeys)
 
 updatePoll :: Poll -> [Day] -> DB (Either String [Key PollAvailableDate])
 updatePoll poll' days = getBy (UniquePollUrl (pollFriendlyUrl poll')) >>= maybe
@@ -56,9 +54,16 @@ deletePoll friendlyUrl = getBy (UniquePollUrl friendlyUrl) >>= maybe
   (return ())
   (\(Entity pollId _) -> update pollId [PollIsDeleted =. True])
 
-getPoll :: T.Text -> DB (Maybe (Entity Poll, [Entity PollAvailableDate]))
+type PollAndDates = (Entity Poll, [DateResults])
+type DateResults = (Entity PollAvailableDate, [Entity PollResults])
+
+getResultsForDate :: Key PollAvailableDate -> DB [Entity PollResults]
+getResultsForDate dateKey = selectList [ PollResultsPollAvailableDateId ==. dateKey] []
+
+getPoll :: T.Text -> DB (Maybe PollAndDates)
 getPoll friendlyUrl =
-  getBy (UniquePollUrl friendlyUrl) >>=
-    maybe (return Nothing) (\p@(Entity pollKey _) -> do
-      availableDates <- selectList [ PollAvailableDatePollId ==. pollKey ] [ Asc PollAvailableDateDate ]
-      return . Just $ (p, availableDates))
+  getBy (UniquePollUrl friendlyUrl)
+    >>= maybe (return Nothing)
+              (\p -> Just . (,) p <$>
+                     (selectList [ PollAvailableDatePollId ==. entityKey p ] [ Asc PollAvailableDateDate ]
+                     >>= mapM (\d -> (,) d <$> getResultsForDate (entityKey d))))
